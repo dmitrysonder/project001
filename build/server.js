@@ -60,15 +60,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var fastify_1 = __importDefault(require("fastify"));
 var winston = __importStar(require("winston"));
+var config_1 = require("./utils/config");
 var logger = winston.createLogger({
     level: 'info',
     format: winston.format.json(),
     defaultMeta: { service: 'server' },
     transports: [
-        //
-        // - Write all logs with level `error` and below to `error.log`
-        // - Write all logs with level `info` and below to `combined.log`
-        //
         new winston.transports.File({ filename: './logs/error.log', level: 'error' }),
         new winston.transports.File({ filename: './logs/combined.log' }),
     ],
@@ -76,10 +73,10 @@ var logger = winston.createLogger({
 var server = fastify_1.default();
 server.get('/ping', function (request, reply) { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
-        return [2 /*return*/, 'pong\n'];
+        return [2, 'pong\n'];
     });
 }); });
-server.listen(8080, function (err, address) {
+server.listen(config_1.config.PORT, function (err, address) {
     logger.warn("Server is starting...");
     if (err) {
         console.error(err);
@@ -87,3 +84,4 @@ server.listen(8080, function (err, address) {
     }
     logger.info("Server listening at " + address);
 });
+//# sourceMappingURL=server.js.map
