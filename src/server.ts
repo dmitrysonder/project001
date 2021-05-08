@@ -21,7 +21,7 @@ server.get('/delete', async (request, reply) => {
   return 'order delete'
 })
 
-server.listen(config.PORT, (err, address) => {
+server.listen(config.PORT, "0.0.0.0", (err, address) => {
   logger.warn(`Server is starting...`);
   if (err) {
     console.error(err)
