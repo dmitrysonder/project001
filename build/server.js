@@ -1,23 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -59,29 +40,35 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var fastify_1 = __importDefault(require("fastify"));
-var winston = __importStar(require("winston"));
+var logger_1 = require("./utils/logger");
 var config_1 = require("./utils/config");
-var logger = winston.createLogger({
-    level: 'info',
-    format: winston.format.json(),
-    defaultMeta: { service: 'server' },
-    transports: [
-        new winston.transports.File({ filename: './logs/error.log', level: 'error' }),
-        new winston.transports.File({ filename: './logs/combined.log' }),
-    ],
-});
 var server = fastify_1.default();
-server.get('/ping', function (request, reply) { return __awaiter(void 0, void 0, void 0, function () {
+server.get('/orders', function (request, reply) { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
-        return [2, 'pong\n'];
+        return [2, 'list of ordesssrs'];
+    });
+}); });
+server.get('/new', function (request, reply) { return __awaiter(void 0, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        return [2, 'new order created'];
+    });
+}); });
+server.get('/update', function (request, reply) { return __awaiter(void 0, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        return [2, 'order updating'];
+    });
+}); });
+server.get('/delete', function (request, reply) { return __awaiter(void 0, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        return [2, 'order deletesss'];
     });
 }); });
 server.listen(config_1.config.PORT, function (err, address) {
-    logger.warn("Server is starting...");
+    logger_1.logger.warn("Server is starting...");
     if (err) {
         console.error(err);
         process.exit(1);
     }
-    logger.info("Server listening at " + address);
+    logger_1.logger.info("Server listening at " + address);
 });
 //# sourceMappingURL=server.js.map

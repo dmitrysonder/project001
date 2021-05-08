@@ -1,20 +1,23 @@
 import fastify from 'fastify'
-import * as winston from 'winston';
+import {logger} from './utils/logger';
 import {config} from "./utils/config"
 
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.json(),
-  defaultMeta: { service: 'server' },
-  transports: [
-    new winston.transports.File({ filename: './logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: './logs/combined.log' }),
-  ],
-});
 const server = fastify()
 
-server.get('/ping', async (request, reply) => {
-  return 'pong\n'
+server.get('/orders', async (request, reply) => {
+  return 'list of ordesssrs'
+})
+
+server.get('/new', async (request, reply) => {
+  return 'new order created'
+})
+
+server.get('/update', async (request, reply) => {
+  return 'order updating'
+})
+
+server.get('/delete', async (request, reply) => {
+  return 'order deletesss'
 })
 
 server.listen(config.PORT, (err, address) => {
