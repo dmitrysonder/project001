@@ -5,6 +5,7 @@ import {config} from "./utils/config"
 const server = fastify()
 
 server.get('/orders', async (request, reply) => {
+  logger.info("orders")
   return 'list of ordesssrs'
 })
 
@@ -17,7 +18,7 @@ server.get('/update', async (request, reply) => {
 })
 
 server.get('/delete', async (request, reply) => {
-  return 'order deletesss'
+  return 'order delete'
 })
 
 server.listen(config.PORT, (err, address) => {
