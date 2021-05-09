@@ -5,8 +5,10 @@ import {config} from "./utils/config"
 const server = fastify()
 
 server.get('/orders', async (request, reply) => {
+  console.log(request)
+  reply.code(200).send({ pong: 'it worked!' })
   logger.info("orders")
-  return 'list of ordesssrs'
+  return 'list of ordesssrss'
 })
 
 server.get('/new', async (request, reply) => {
@@ -21,7 +23,7 @@ server.get('/delete', async (request, reply) => {
   return 'order delete'
 })
 
-server.listen(config.PORT, "0.0.0.0", (err, address) => {
+server.listen(config.PORT, (err, address) => {
   logger.warn(`Server is starting...`);
   if (err) {
     console.error(err)
