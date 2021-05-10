@@ -1,14 +1,26 @@
-import fastify from 'fastify'
-import {logger} from './utils/logger';
-import {config} from "./utils/config"
+const fastify = require('fastify')
+const uuid = require('uuid');
+const { logger } = require('./utils/logger')
+const { config } = require("./utils/config")
+const db = require("./utils/db")
+
 
 const server = fastify()
 
 server.get('/orders', async (request, reply) => {
-  console.log(request)
-  reply.code(200).send({ pong: 'it worked!' })
-  logger.info("orders")
-  return 'list of ordesssrss'
+  const orders = await db.scan({
+    FilterExpression: "pk = :pk",
+    ExpressionAttributeValues: {
+      ":pk": 'order',
+    }
+  })
+  reply
+    .code(200)
+    .header('Content-Type', 'application/json; charset=utf-8')
+    .send({
+      status: "ok",
+      orders: orders["Items"]
+    })
 })
 
 server.get('/new', async (request, reply) => {
