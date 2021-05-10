@@ -14,6 +14,7 @@ server.get('/orders', async (request, reply) => {
       ":pk": 'order',
     }
   })
+  logger.info(request)
   reply
     .code(200)
     .header('Content-Type', 'application/json; charset=utf-8')
@@ -35,7 +36,7 @@ server.get('/delete', async (request, reply) => {
   return 'order delete'
 })
 
-server.listen(config.PORT, config.ADDRESS, (err, address) => {
+server.listen(config.PORT, "0.0.0.0", (err, address) => {
   logger.warn(`Server is starting...`);
   if (err) {
     console.error(err)
