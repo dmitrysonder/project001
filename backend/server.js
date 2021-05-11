@@ -1,11 +1,16 @@
 const fastify = require('fastify')
 const uuid = require('uuid');
 const { logger } = require('./utils/logger')
-const { config } = require("./utils/config")
+const { config } = require("./config")
 const db = require("./utils/db")
 
 
+
+
 const server = fastify()
+server.register(require('fastify-cors'), { 
+  // put your options here
+})
 
 server.get('/orders', async (request, reply) => {
   const orders = await db.scan({
@@ -14,7 +19,6 @@ server.get('/orders', async (request, reply) => {
       ":pk": 'order',
     }
   })
-  logger.info(request)
   reply
     .code(200)
     .header('Content-Type', 'application/json; charset=utf-8')

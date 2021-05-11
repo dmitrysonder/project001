@@ -1,5 +1,5 @@
 const ethers = require('ethers')
-const {config} = require('../utils/config')
+const {config} = require('../config')
 const provider = ethers.getDefaultProvider(...config.getProvider())
 
 const topicSets = [

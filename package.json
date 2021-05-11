@@ -20,8 +20,10 @@
   "homepage": "https://github.com/dmitrysonder/project001#readme",
   "dependencies": {
     "aws-sdk": "^2.901.0",
+    "axios": "^0.21.1",
     "ethers": "^5.1.4",
     "fastify": "^3.15.1",
+    "fastify-cors": "^6.0.1",
     "uuid": "^8.3.2",
     "winston": "^3.3.3"
   },

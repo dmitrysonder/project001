@@ -1,5 +1,5 @@
 const AWS = require('aws-sdk');
-const {config} = require (`./config`);
+const {config} = require (`../config`);
 const DB = new AWS.DynamoDB.DocumentClient({
     region: config.AWS_REGION,
     apiVersion: '2012-08-10'
