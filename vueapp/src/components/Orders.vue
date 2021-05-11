@@ -36,7 +36,7 @@ export default {
     };
   },
   created: function () {
-    axios.get("http://127.0.0.1:3000/orders").then((res) => {
+    axios.get("http://52.14.127.250:3000/orders").then((res) => {
       console.log(res);
       this.orders = res.data.orders;
     })
