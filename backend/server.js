@@ -3,8 +3,7 @@ const uuid = require('uuid');
 const { logger } = require('./utils/logger')
 const { config } = require("./config")
 const db = require("./utils/db");
-const { wrongRequestError } = require("./utils/errors")
-const { headers } = require("")
+const { wrongRequestError } = {wrongRequestError: "test"}//require("./utils/errors")
 
 const server = fastify()
 server.register(require('fastify-cors'), {})
@@ -19,7 +18,6 @@ server.get('/orders', async (request, reply) => {
 
   reply
     .code(200)
-    .header('Content-Type', 'application/json; charset=utf-8')
     .send({
       status: "ok",
       orders: orders["Items"]
@@ -29,14 +27,12 @@ server.get('/orders', async (request, reply) => {
 server.post('/new', async (request, reply) => {
 
   if (!request.body?.uuid) reply.code(400)
-    .header('Content-Type', 'application/json; charset=utf-8')
     .send(wrongRequestError)
 
-  const response = await createOrder(uuid())
+  const response = await createOrder()
   if (response.error) reply.code(500)
   reply
     .code(201)
-    .header('Content-Type', 'application/json; charset=utf-8')
     .send(response)
   return wrongRequestError
 })
@@ -58,9 +54,9 @@ server.listen(config.PORT, "0.0.0.0", (err, address) => {
   logger.info(`Server listening at ${address}`);
 })
 
-async function createOrder(uuid) {
+async function createOrder() {
   const response = await db.update({
-    Key: { "pk": "order", "sk": uuid() },
+    Key: { "pk": "order", "sk": uuid.v4() },
     data: generateOrder()
   })
   return response
@@ -68,8 +64,8 @@ async function createOrder(uuid) {
 
 function generateOrder() {
   return {
-    status: "open",
-    type: "buy",
+    status_: "open",
+    type_: "buy",
     amount: "9999",
   }
 }

@@ -18,7 +18,7 @@ module.exports = {
             Key,
             UpdateExpression: updateExpression,
             ExpressionAttributeValues: expressionValues,
-            ReturnValues: "UPDATED_NEW"
+            ReturnValues: "ALL_NEW"
         }
         return await DB.update(params, catcher).promise()
     },
