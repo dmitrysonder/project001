@@ -67,3 +67,7 @@ function generateOrder() {
     amount: "9999",
   }
 }
+
+function validateOrder() {
+  
+}
