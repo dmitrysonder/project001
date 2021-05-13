@@ -3,7 +3,6 @@ const uuid = require('uuid');
 const { logger } = require('./utils/logger')
 const { config } = require("./config")
 const db = require("./utils/db");
-const { wrongRequestError } = {wrongRequestError: "test"}//require("./utils/errors")
 
 const server = fastify()
 server.register(require('fastify-cors'), {})
@@ -34,7 +33,6 @@ server.post('/new', async (request, reply) => {
   reply
     .code(201)
     .send(response)
-  return wrongRequestError
 })
 
 server.post('/update', async (request, reply) => {
