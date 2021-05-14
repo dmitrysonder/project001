@@ -10,5 +10,5 @@ console.log(`Swap Contract is loaded at ${Contract.address}`)
 
 Contract.on("Sync", (reserve0, reserve1) => {
     const price = (reserve1/reserve0) * Math.pow(10, 12)
-    console.log(price)
+    console.log(price.toFixed(2))
 });

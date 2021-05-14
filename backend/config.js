@@ -7,6 +7,7 @@ exports.config = {
     BUCKET_NAME: process.env.BUCKET_NAME || 'project001',  // S3 bucket name  
     CHUNK_SIZE: process.env.CHUNK_SIZE || 10, // max simulateonos records in database
     ADDRESS: this.ENV === "PROD" ? "0.0.0.0" : "127.0.0.1",
+    PANCAKE_ROUTER: process.env.PANCAKE_ROUTER || "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
     getProvider: function () {
         return ["mainnet", { infura: this.INFURA_KEY }]
     }
