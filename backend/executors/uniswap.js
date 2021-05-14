@@ -2,15 +2,7 @@ const ethers = require('ethers')
 const {config} = require('../config')
 const fs = require('fs')
 
-const tradeEvent = {
-    pool: "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
-    amount0Out: 12, // uin256
-    amount1Out: 10, // uint256
-    to: "", // address
-    data: "" // bytes
-}
-
-class Router {
+class Uniswap {
     constructor(address) {
         this.address = address
         this.ABI = JSON.parse((fs.readFileSync(`../abis/Router.abi.json`).toString()))
@@ -45,6 +37,4 @@ class Router {
     }
 }
 
-const router = new Router(config.PANCAKE_ROUTER)
-const WETH = async () => await router.contract.WETH()
-WETH().then(d => console.log(d))
+export const uniswap = new Uniswap(config.PANCAKE_ROUTER)
