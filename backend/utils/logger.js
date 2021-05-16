@@ -1,12 +1,29 @@
-const winston = require('winston');
+const { createLogger, format, transports } = require('winston');
+const { combine, splat, timestamp, printf } = format;
 
-exports.logger = winston.createLogger({
+const myFormat = printf( ({ level, message, timestamp, ...metadata}) => {
+  let msg = `${timestamp} [${level}] : ${message} `  
+  if(metadata) {
+    if (metadata.file) {
+      msg = `[${metadata.file}] ` + msg
+    } else {
+      msg += JSON.stringify(metadata)
+    }
+  }
+  return msg
+});
+
+exports.logger = createLogger({
     level: 'info',
-    format: winston.format.json(),
-    defaultMeta: { service: 'server' },
+    format: combine(
+      format.colorize(),
+      splat(),
+      timestamp(),
+      myFormat
+    ),
     transports: [
-      new winston.transports.File({ filename: './logs/error.log', level: 'error' }),
-      new winston.transports.File({ filename: './logs/combined.log' }),
-      new (winston.transports.Console)(),
+      new transports.File({ filename: './logs/error.log', level: 'error' }),
+      new transports.File({ filename: './logs/combined.log' }),
+      new (transports.Console)({ level: 'info' }),
     ],
 });

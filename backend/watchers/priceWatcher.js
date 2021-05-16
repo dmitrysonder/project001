@@ -8,7 +8,8 @@ const ABI = JSON.parse((fs.readFileSync(`../abis/Pair.abi.json`).toString()))
 const Contract = new ethers.Contract(contractAddress,ABI,provider)
 console.log(`Swap Contract is loaded at ${Contract.address}`)
 
-Contract.on("Sync", (reserve0, reserve1) => {
+Contract.on("Sync", (reserve0, reserve1, ...args) => {
+    console.log(args[0].transactionIndex)
     const price = (reserve1/reserve0) * Math.pow(10, 12)
     console.log(price.toFixed(2))
 });

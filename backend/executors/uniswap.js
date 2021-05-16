@@ -14,27 +14,53 @@ class Uniswap {
         this.contract = new ethers.Contract(this.address, this.ABI, provider)
     }
 
+    trade(params) {
+        
+    }
+
     swapTokensForExactETH(params) {
-        await this.contract.swapTokensForExactETH(
+        const tx = await this.contract.swapTokensForExactETH(
             params.amountOut,
             params.amountInMax,
             params.path,
             params.to,
             params.deadline,
         )
+        return tx
     }
 
     swapTokensForExactTokens(params) {
-
+        const tx = await this.contract.swapTokensForExactTokens(
+            params.amountOut,
+            params.amountInMax,
+            params.path,
+            params.to,
+            params.deadline,
+        )
+        return tx
     }
 
     swapExactTokensForTokens(params) {
-
+        const tx = await this.contract.swapTokensForExactTokens(
+            params.amountIn,
+            params.amountOutMin,
+            params.path,
+            params.to,
+            params.deadline,
+        )
+        return tx
     }
 
     swapExactETHForTokens(params) {
-
+        const tx = await this.contract.swapTokensForExactTokens(
+            params.swapExactETHForTokens,
+            params.amountOutMin,
+            params.path,
+            params.to,
+            params.deadline,
+        )
+        return tx
     }
 }
 
-export const uniswap = new Uniswap(config.PANCAKE_ROUTER)
+export const uniswap = new Uniswap(config.UNISWAP_ROUTER)
