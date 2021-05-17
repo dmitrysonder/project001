@@ -1,4 +1,4 @@
-const args = require('minimist')(process.argv.slice(2), {string: ['a', 'pool']});
+const args = require('minimist')(process.argv.slice(2), {string: ['token1_address', 'pair_pool', 'token0_address']});
 const { logger } = require('../utils/logger')
 const { ethers } = require('ethers')
 const fs = require('fs')
@@ -11,7 +11,7 @@ class Watcher {
         logger.defaultMeta = {file: "Watcher"}
         if (!params || !params.type || !params.uuid) return logger.error("No required params uuid and type", params)
 
-        this.ABI = JSON.parse((fs.readFileSync(`../abis/Pair.abi.json`).toString()))
+        this.ABI = config.getAbi("Pair.abi.json")
         this.provider = ethers.getDefaultProvider(...config.getProvider())
 
         logger.info(`Running a "${params.type}" Watcher for order ${params.uuid}`)
@@ -42,12 +42,13 @@ class Watcher {
     }
 
     runPriceWatcher(params) {
-        const contract = new ethers.Contract(params.pool, this.ABI, this.provider)
-        logger.info(`Listening price change events on pool contract: ${contract.address}`)
+        const contract = new ethers.Contract(params.pair_pool, this.ABI, this.provider)
+        logger.debug(`Listening price change events on pool contract: ${contract.address}`)
 
         contract.on("Sync", (reserve0, reserve1) => {
             const price = (reserve1 / reserve0) * Math.pow(10, 12)
-            logger.info(price.toFixed(2))
+            logger.debug(`Price changed: ${price.toFixed(2)} for ${params.uuid}`)
+            process.send(`Price changed for uuid ${params.uuid}`);
         });
     }
 

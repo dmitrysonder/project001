@@ -5,7 +5,7 @@ const fs = require('fs')
 class Uniswap {
     constructor(address) {
         this.address = address
-        this.ABI = JSON.parse((fs.readFileSync(`../abis/Router.abi.json`).toString()))
+        this.ABI = config.getAbi("Router.abi.json")
         this.init()
     }
 
