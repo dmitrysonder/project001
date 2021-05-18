@@ -9,12 +9,12 @@ class Watcher {
 
     constructor(params) {
         logger.defaultMeta = {file: "Watcher"}
-        if (!params || !params.type || !params.uuid) return logger.error("No required params uuid and type", params)
+        if (!params || !params.uuid) return logger.error("Wrong params passed", params)
 
         this.ABI = config.getAbi("Pair.abi.json")
         this.provider = ethers.getDefaultProvider(...config.getProvider())
 
-        logger.info(`Running a "${params.type}" Watcher for order ${params.uuid}`)
+        logger.info(`Running a "${params?.type}" Watcher for order ${params?.uuid}`)
         switch (params?.type) {
             case "timestamp":
                 this.runTimestampWatcher(params)
@@ -48,7 +48,7 @@ class Watcher {
         contract.on("Sync", (reserve0, reserve1) => {
             const price = (reserve1 / reserve0) * Math.pow(10, 12)
             logger.debug(`Price changed: ${price.toFixed(2)} for ${params.uuid}`)
-            process.send(`Price changed for uuid ${params.uuid}`);
+            process.send(params);
         });
     }
 
@@ -56,6 +56,5 @@ class Watcher {
         
     }
 }
-
 
 const watcher = new Watcher(args)

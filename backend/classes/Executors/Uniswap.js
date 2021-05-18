@@ -2,20 +2,13 @@ const ethers = require('ethers')
 const {config} = require('../config')
 const fs = require('fs')
 
-class Uniswap {
+export class Uniswap {
+
     constructor(address) {
         this.address = address
         this.ABI = config.getAbi("Router.abi.json")
-        this.init()
-    }
-
-    init() {
         const provider = ethers.getDefaultProvider(...config.getProvider())
         this.contract = new ethers.Contract(this.address, this.ABI, provider)
-    }
-
-    trade(params) {
-        
     }
 
     swapTokensForExactETH(params) {
@@ -62,5 +55,3 @@ class Uniswap {
         return tx
     }
 }
-
-export const uniswap = new Uniswap(config.UNISWAP_ROUTER)

@@ -71,6 +71,21 @@ module.exports = {
         const params = { TableName: tableName, ...props };
         return await DB.delete(params, catcher).promise()
     },
+
+    getOrders: async function() {
+        const data = await this.scan({
+            FilterExpression: "pk = :pk and status_ = :status",
+            ExpressionAttributeValues: {
+                ":pk": 'order',
+                ":status": 'active',
+            }
+        })
+        if (data["Items"]?.length === 0) {
+            logger.warn("No active orders found in database")
+            return false
+        }
+        return data["Items"]
+    }
 }
 
 const catcher = (err, data) => err ? err : data;

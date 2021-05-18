@@ -9,7 +9,10 @@ exports.config = {
     BUCKET_NAME: process.env.BUCKET_NAME || 'project01',  // S3 bucket name  
     CHUNK_SIZE: process.env.CHUNK_SIZE || 10, // max simulateonos records in database
     ADDRESS: this.ENV === "PROD" ? "0.0.0.0" : "127.0.0.1",
-    UNISWAP_ROUTER: process.env.UNISWAP || "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
+    UNISWAP_ROUTER: process.env.UNISWAP_ROUTER || "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
+    SUSHI_ROUTER: process.env.SUSHI_ROUTER || "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
+    PANCAKE_ROUTER: process.env.PANCAKE_ROUTER || "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
+    
     getProvider: function () {
         return ["mainnet", { infura: this.INFURA_KEY }]
     },
