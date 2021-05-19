@@ -3,6 +3,8 @@ const db = require("../utils/db")
 const { logger } = require('../utils/logger')
 const { fork } = require('child_process');
 const fs = require('fs')
+const path = require('path');
+const  Executor  = require('./Executor');
 
 class Controller {
 
@@ -14,6 +16,8 @@ class Controller {
 
     async init() {
         logger.defaultMeta = {file: "Controller"}
+        this.executor = new Executor()
+
         await this.killWatchers()
         const orders = await db.getOrders()
         logger.info(`Loading watchers for ${orders.length} active orders from the database`)
@@ -26,25 +30,39 @@ class Controller {
 
     listen() {
         for (const watcher of this.watchers) {
-            watcher.worker.on('message', data => {
-                console.log("test")
+            watcher.worker.on('message', async data => {
+                console.log(data)
+                const tx = await this.executor.execute(data)
+                console.log("tx", tx)
             });
-        }  
+        }
     }
 
     createWatcher(order) {
-        const execArgv = [`--uuid=${order.uuid}`]
+        const execArgv = this.generateArgv(order)
         const options = {
             stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ]
         };
-        const pathToWatcher = "./Watcher.js"
+        const pathToWatcher = path.resolve("Watcher.js")
         if (!fs.existsSync(pathToWatcher)) logger.error(`Path to watcher is not found` , pathToWatcher)
-
+        
         const worker = fork(pathToWatcher, execArgv, options);
         this.watchers.push({
             order,
             worker,
         })
+    }
+
+    generateArgv(order, arr, prevKey_) {
+        const execArgv = arr || []
+        const prevKey = prevKey_ ? `${prevKey_}_` : '';
+        Object.keys(order).forEach(key => {
+            if (typeof order[key] === 'string') execArgv.push(`--${prevKey}${key}=${order[key]}`);
+            if (typeof order[key] === 'object') {
+                this.generateArgv(order[key], execArgv, key)
+            }
+        })
+        return execArgv
     }
 
 

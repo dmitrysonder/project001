@@ -85,6 +85,21 @@ module.exports = {
             return false
         }
         return data["Items"]
+    },
+
+    getOrder: async function(uuid) {
+        const data = await this.query({
+            KeyConditionExpression: "pk = :pk and sk = :holvi",
+            ExpressionAttributeValues: {
+                ":pk": 'order',
+                ":sk": uuid
+            }
+        })
+        if (data["Items"]?.length === 0) {
+            logger.warn("No order found by uuid " + uuid)
+            return false
+        }
+        return data["Items"].filter(order => order.type)[0]
     }
 }
 

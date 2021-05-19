@@ -2,20 +2,22 @@ const args = require('minimist')(process.argv.slice(2), {string: ['token1_addres
 const { logger } = require('../utils/logger')
 const { ethers } = require('ethers')
 const fs = require('fs')
-const { config } = require('../config')
+const { config } = require('../config');
+const db = require('../utils/db');
 
 
 class Watcher {
 
     constructor(params) {
-        logger.defaultMeta = {file: "Watcher"}
-        if (!params || !params.uuid) return logger.error("Wrong params passed", params)
+        logger.defaultMeta = { file: "Watcher" }
+        if (!params || !params.type || !params.uuid) return logger.error("No required params uuid and type", params)
 
         this.ABI = config.getAbi("Pair.abi.json")
         this.provider = ethers.getDefaultProvider(...config.getProvider())
 
-        logger.info(`Running a "${params?.type}" Watcher for order ${params?.uuid}`)
-        switch (params?.type) {
+        logger.info(`Running a "${params.type}" Watcher for order ${params.uuid}`)
+
+        switch (params.type) {
             case "timestamp":
                 this.runTimestampWatcher(params)
                 break;
@@ -48,12 +50,15 @@ class Watcher {
         contract.on("Sync", (reserve0, reserve1) => {
             const price = (reserve1 / reserve0) * Math.pow(10, 12)
             logger.debug(`Price changed: ${price.toFixed(2)} for ${params.uuid}`)
-            process.send(params);
+            process.send({
+                params,
+                value: price
+            });
         });
     }
 
     runMempoolWatcher(params) {
-        
+
     }
 }
 

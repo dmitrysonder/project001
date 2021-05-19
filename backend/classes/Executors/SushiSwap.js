@@ -1,24 +1,18 @@
 const ethers = require('ethers')
 const {config} = require('../../config')
+const { logger } = require('../../utils/logger');
 
-export class SushiSwap {
-    
+module.exports = class SushiSwap {
+
     constructor(address) {
         this.address = address
         this.ABI = config.getAbi("Router.abi.json")
-        this.init()
-    }
-
-    init() {
         const provider = ethers.getDefaultProvider(...config.getProvider())
         this.contract = new ethers.Contract(this.address, this.ABI, provider)
+        logger.info("Sushiswap router is initialized")
     }
 
-    trade(params) {
-        
-    }
-
-    swapTokensForExactETH(params) {
+    async swapTokensForExactETH(params) {
         const tx = await this.contract.swapTokensForExactETH(
             params.amountOut,
             params.amountInMax,
@@ -29,7 +23,7 @@ export class SushiSwap {
         return tx
     }
 
-    swapTokensForExactTokens(params) {
+    async swapTokensForExactTokens(params) {
         const tx = await this.contract.swapTokensForExactTokens(
             params.amountOut,
             params.amountInMax,
@@ -40,7 +34,7 @@ export class SushiSwap {
         return tx
     }
 
-    swapExactTokensForTokens(params) {
+    async swapExactTokensForTokens(params) {
         const tx = await this.contract.swapTokensForExactTokens(
             params.amountIn,
             params.amountOutMin,
@@ -51,7 +45,7 @@ export class SushiSwap {
         return tx
     }
 
-    swapExactETHForTokens(params) {
+    async swapExactETHForTokens(params) {
         const tx = await this.contract.swapTokensForExactTokens(
             params.swapExactETHForTokens,
             params.amountOutMin,
@@ -62,5 +56,3 @@ export class SushiSwap {
         return tx
     }
 }
-
-export const uniswap = new Uniswap(config.UNISWAP_ROUTER)
