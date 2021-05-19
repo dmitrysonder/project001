@@ -12,11 +12,14 @@ module.exports = class Executor {
     }
 
     async execute(order) {
-        switch(order.exchange) {
+        switch(order?.exchange) {
             case 'uniswap':
                 return await this.uniswap.execute(order)
             case 'sushiswap':
                 return await this.sushiswap.execute(order)
+            default:
+                logger.error(`Unexpected exchange ${order.exchange}`)
+                return false
         }
     }
 }

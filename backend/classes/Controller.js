@@ -31,11 +31,39 @@ class Controller {
     listen() {
         for (const watcher of this.watchers) {
             watcher.worker.on('message', async data => {
-                console.log(data)
-                const tx = await this.executor.execute(data)
-                console.log("tx", tx)
+                logger.info(`Received trigger for order ${data.uuid} with message:\n${data.msg}`)
+                const watcher = this.watchers.find(obj => obj.order.uuid === data.uuid)
+                if (!watcher) throw Error(`Can't find watcher for ${data.uuid}`)
+                const tx = await this.executor.execute(watcher.order)
+                this.handleTrade(tx, watcher)
             });
         }
+    }
+
+    async handleTrade(tx, watcher) {
+        if (tx.ok) {
+            await this.killTrade(watcher)
+            if (watcher.order.bot) await this.createNewBotTrade(watcher.order.bot)
+        } else {
+            await this.pauseTrade(watcher, "transaciton failed")
+        }
+    }
+
+    async killTrade(watcher) {
+        await this.killWatchers(watcher.worker.pid)
+        await db.deleteOrder(watcher.order.uuid)
+    }
+
+    async pauseTrade(watcher, reason) {
+        await this.killWatchers(watcher.worker.pid)
+        await this.updateOrderStatus(watcher.order.uuid, 'paused', reason)
+    }
+
+    async updateOrderStatus(uuid, status, reason) {
+        await db.updateOrder(uuid, {
+            status_: status,
+            reason: reason
+        })
     }
 
     createWatcher(order) {
@@ -45,38 +73,42 @@ class Controller {
         };
         const pathToWatcher = path.resolve("Watcher.js")
         if (!fs.existsSync(pathToWatcher)) logger.error(`Path to watcher is not found` , pathToWatcher)
-        
+
         const worker = fork(pathToWatcher, execArgv, options);
         this.watchers.push({
             order,
-            worker,
+            worker
         })
     }
 
-    generateArgv(order, arr, prevKey_) {
-        const execArgv = arr || []
-        const prevKey = prevKey_ ? `${prevKey_}_` : '';
-        Object.keys(order).forEach(key => {
-            if (typeof order[key] === 'string') execArgv.push(`--${prevKey}${key}=${order[key]}`);
-            if (typeof order[key] === 'object') {
-                this.generateArgv(order[key], execArgv, key)
-            }
-        })
+    generateArgv(order) {
+        const execArgv = [
+            `--uuid=${order.uuid}`,
+            `--type=${order.type}`,
+            `--token0_decimals=${order.pair.token0.decimals}`,
+            `--token1_decimals=${order.pair.token1.decimals}`,
+            `--trigger_action=${order.trigger.action}`,
+            `--trigger_target=${order.trigger.target}`,
+            `--pair_pool=${order.pair.pool}`,
+        ]
         return execArgv
     }
 
 
-    async killWatchers() {
+    async killWatchers(pid) {
         ps.lookup({
             command: 'node',
         }, function (err, resultList) {
             if (err) {
                 throw new Error(err);
             }
-            const watchers = resultList.filter(process => process?.arguments[0] === "Watcher.js")
+            const watchers = resultList.filter(process => {
+                const pidMatch = pid ? process.pid === pid : true
+                return process?.arguments[0] === "Watcher.js" && pidMatch
+            })
             if (watchers.length === 0) return true
 
-            logger.info("Killing all existing watchers...")
+            logger.info("Killing watchers...")
             watchers.forEach(function (process) {
                 if (process) {
                     ps.kill(process.pid, function (err) {

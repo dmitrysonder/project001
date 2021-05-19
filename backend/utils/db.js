@@ -100,6 +100,23 @@ module.exports = {
             return false
         }
         return data["Items"].filter(order => order.type)[0]
+    },
+
+    deleteOrder: async function(uuid) {
+        return await this.delete({
+            KeyConditionExpression: "pk = :pk and sk = :holvi",
+            ExpressionAttributeValues: {
+                ":pk": 'order',
+                ":sk": uuid
+            }
+        })
+    },
+
+    updateOrder: async function(uuid, data) {
+        return await this.update({
+            Key: { "pk": "order", "uuid": uuid },
+            data
+        })
     }
 }
 
