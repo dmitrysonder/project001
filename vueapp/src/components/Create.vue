@@ -2,77 +2,72 @@
   <div class="container">
     <h4>Create Order</h4>
     <label>Type</label>
-    <select>
-      <option @change="onChange($event.target.value)" v-for="type in types" v-bind:key="type" v-bind:value="type">
+    <select @change="onTypeChange($event)">
+      <option v-for="type in types" v-bind:key="type" v-bind:value="type">
         {{ type }}
       </option>
     </select>
-    
+
     <div class="box">
       <div id="createOrder">
-          
+        <div class="list" v-for="name in Object.keys(fields)" v-bind:key="name">
+          <label v-bind:for="name">{{fields[name]["label"]}}</label>
+          <input 
+          v-bind:name="name" 
+          v-bind:type="fields[name].type"/>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-function onChange(val) {
-    console.log(val)
-}
-const types = [
-  "Limit Order",
-  "Timestamp Order",
-  "Listing Order",
-  "Front-Running",
-  "Bot",
-];
-
-const generalFields = {
-    token0: { type: "search", label: "Base Token"},
-    token1: { type: "search", label: "Quote Token"},
-    gasPrice: {type: "input", label: "Gas Price"},
-    maxSlippage: {type: "input", label: "Max Slippage"},
-    amount0: {type: "input", label: "Amount of Base Token to"},
-    amount1: {type: "input", label: "Amount of Quote Token to"},
-}
-
-const limitOrder = {
-    ...generalFields,
-    trade: {label: "Buy/Sell", type: "dropdown", options: ["limit buy", "limit sell"]},
-    price: {label: "Target Price", type: "input"}
-}
-
-const timestampOrder = {
-    ...generalFields,
-    trade: {label: "Buy/Sell", type: "dropdown", options: ["buy", "sell"]},
-    timestamp: {label: "Date & Time", type: "date"}
-}
-
-const listingOrder = {
-    ...generalFields,
-    trade: {label: "Buy/Sell", type: "dropdown", options: ["buy", "sell"]},
-    timestamp: {label: "Date & Time", type: "date"}
-}
-
-const frontRun = {
-    ...generalFields,
-    volume0: {label: "Min Volume in Base Token", type: "input"},
-    volume1: {label: "Min Volume in Quote Token", type: "input"},
-    sandwitchTrade: {label: "Sandwitch Trade", type: "checkbox"}
-}
-
-const bot = {
-    ...generalFields,
-    priceToBuy: {label: "Price when Buy", type: "input"},
-    priceToSell: {label: "Price when Sell", type: "input"}
-}
+import { constants } from "../data/data";
 
 export default {
   name: "Create",
   data() {
-    return { types , limitOrder, bot, frontRun, timestampOrder, listingOrder};
-  }
+    return {
+      types: constants.types,
+      fields: {},
+    };
+  },
+  methods: {
+    onTypeChange(event) {
+      switch (event.target.value) {
+        case "Limit Order":
+          this.fields = {
+            ...constants.generalFields,
+            ...constants.limitOrder,
+          };
+          break;
+        case "Timestamp Order":
+          this.fields = {
+            ...constants.generalFields,
+            ...constants.timestampOrder,
+          };
+          break;
+        case "Listing Order":
+          this.fields = {
+            ...constants.generalFields,
+            ...constants.listingOrder,
+          };
+          break;
+        case "Front-Running":
+          this.fields = {
+            ...constants.generalFields,
+            ...constants.frontRun,
+          };
+          break;
+        case "Bot":
+          this.fields = {
+            ...constants.generalFields,
+            ...constants.bot,
+          };
+          break;
+      }
+    },
+  },
 };
 </script>
 
@@ -90,6 +85,9 @@ input {
   margin: 5px;
 }
 label {
-    margin-right: 10px;
+  margin-right: 10px;
+}
+.list {
+  justify-content: right;
 }
 </style>
