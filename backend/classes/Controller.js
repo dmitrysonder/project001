@@ -1,12 +1,13 @@
 const ps = require('ps-node');
 const db = require("../utils/db")
-const { logger } = require('../utils/logger')
+const { getLogger } = require('../utils/logger');
+const logger = getLogger("Controller")
 const { fork } = require('child_process');
 const fs = require('fs')
 const path = require('path');
 const  Executor  = require('./Executor');
 
-class Controller {
+module.exports = class Controller {
 
     watchers = []
 
@@ -15,11 +16,10 @@ class Controller {
     }
 
     async init() {
-        logger.defaultMeta = {file: "Controller"}
         this.executor = new Executor()
 
         await this.killWatchers()
-        const orders = await db.getOrders()
+        const orders = await db.getOrders("active")
         logger.info(`Loading watchers for ${orders.length} active orders from the database`)
         if (orders) {
             orders.forEach(order => this.createWatcher(order))
@@ -71,8 +71,11 @@ class Controller {
         const options = {
             stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ]
         };
-        const pathToWatcher = path.resolve("Watcher.js")
-        if (!fs.existsSync(pathToWatcher)) logger.error(`Path to watcher is not found` , pathToWatcher)
+        const pathToWatcher = path.resolve(__dirname, "Watcher.js")
+        if (!fs.existsSync(pathToWatcher)) {
+            logger.error(`Path to watcher is not found` , pathToWatcher)
+            throw Error("Wrong Watcher.js path")
+        }
 
         const worker = fork(pathToWatcher, execArgv, options);
         this.watchers.push({
@@ -124,8 +127,6 @@ class Controller {
         });
     }
 }
-
-const controller = new Controller()
 
 
 

@@ -1,34 +1,28 @@
 const fastify = require('fastify')
-const uuid = require('uuid');
-const { logger } = require('./utils/logger')
+const { getLogger } = require('./utils/logger')
+const logger = getLogger("server")
 const { config } = require("./config")
-const db = require("./utils/db");
+const db = require("./utils/db")
+const Controller = require("./classes/Controller")
 
 const server = fastify()
 server.register(require('fastify-cors'), {})
 
-server.get('/orders', async (request, reply) => {
-  const orders = await db.scan({
-    FilterExpression: "pk = :pk",
-    ExpressionAttributeValues: {
-      ":pk": 'order',
-    }
-  })
 
+server.get('/orders', async (request, reply) => {
+  const orders = await db.getOrders()
   reply
     .code(200)
     .send({
       status: "ok",
-      orders: orders["Items"]
+      orders
     })
 })
 
 server.post('/new', async (request, reply) => {
-
-  if (!request.body?.uuid) reply.code(400)
+  if (!request.body) reply.code(400)
     .send(wrongRequestError)
-
-  const response = await createOrder()
+  const response = await db.createOrder(request.body)
   if (response.error) reply.code(500)
   reply
     .code(201)
@@ -36,13 +30,25 @@ server.post('/new', async (request, reply) => {
 })
 
 server.post('/update', async (request, reply) => {
-  console.log(request.body.uuid)
+  const uuid = request.body?.uuid
+  if (!uuid) reply.code(400)
+  
+  const response = await db.updateOrder(uuid, request.body)
+  if (response.error) reply.code(500)
+  reply
+    .code(201)
+    .send(response)
 })
 
 server.get('/delete', async (request, reply) => {
   return 'order delete'
 })
 
+
+
+
+
+const controller = new Controller()
 server.listen(config.PORT, "0.0.0.0", (err, address) => {
   logger.warn(`Server is starting...`);
   if (err) {
@@ -52,22 +58,6 @@ server.listen(config.PORT, "0.0.0.0", (err, address) => {
   logger.info(`Server listening at ${address}`);
 })
 
-async function createOrder() {
-  const response = await db.update({
-    Key: { "pk": "order", "sk": uuid.v4() },
-    data: generateOrder()
-  })
-  return response
-}
-
-function generateOrder() {
-  return {
-    status_: "open",
-    type_: "buy",
-    amount: "9999",
-  }
-}
-
-function validateOrder() {
-  
+function validateOrder(body) {
+  return body
 }

@@ -1,11 +1,11 @@
 const ethers = require('ethers')
 const { config } = require('../../config')
-const { logger } = require('../../utils/logger');
+const { getLogger } = require('../../utils/logger');
+const logger = getLogger("Uniswap")
 
 module.exports = class Uniswap {
 
     constructor(address) {
-        logger.defaultMeta = { file: "Uniswap" }
         this.address = address
         this.ABI = config.getAbi("Router.abi.json")
         const provider = ethers.getDefaultProvider(...config.getProvider())

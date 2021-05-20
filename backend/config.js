@@ -1,7 +1,7 @@
 const {readFileSync} = require('fs');
 
 exports.config = {
-    ENV: "PROD",
+    ENV: "DEV",
     PORT: 3000,
     AWS_REGION: process.env.AWS_REGION || 'us-east-2', // AWS Region
     INFURA_KEY: process.env.INFURA_KEY || '694aa307fb484c5bac98e4dca4aca053', // Infura API key for eth testing

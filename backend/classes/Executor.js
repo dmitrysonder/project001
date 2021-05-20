@@ -1,7 +1,8 @@
 const Uniswap= require("./Executors/Uniswap");
 const {config} = require('../config');
 const SushiSwap = require("./Executors/SushiSwap");
-const { logger } = require('../utils/logger');
+const { getLogger } = require('../utils/logger');
+const logger = getLogger("Executor")
 
 module.exports = class Executor {
 

@@ -1,6 +1,7 @@
 const ethers = require('ethers')
 const {config} = require('../../config')
-const { logger } = require('../../utils/logger');
+const { getLogger } = require('../../utils/logger');
+const logger = getLogger("Sushiswap")
 
 module.exports = class SushiSwap {
 

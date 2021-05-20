@@ -1,25 +1,32 @@
 <template>
   <div class="container">
-    <h3>Orders:</h3>
+    <h4>Orders:</h4>
     <table class="table">
       <thead>
         <tr>
-          <th scope="col">Id</th>
-          <th scope="col">Status</th>
-          <th scope="col">Type</th>
-          <th scope="col">Amount</th>
           <th scope="col">Pair</th>
+          <th scope="col">Status</th>
+          <th scope="col">Buy/Sell</th>
+          <th scope="col">Amount</th>
           <th scope="col">Trigger</th>
+          <th scope="col">Current</th>
+          <th scope="col"></th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="order in orders" v-bind:key="order.sk">
-          <th scope="row">{{ order.sk }}</th>
-          <td>{{ order.status }}</td>
-          <td>{{ order.type }}</td>
-          <td>{{ order.amount }}</td>
-          <td>{{ order.pair }}</td>
-          <td>{{ order.trigger }}</td>
+        <tr v-for="order in orders" v-bind:key="order.uuid">
+          <th scope="row">{{ `${order.pair.token0.symbol}-${order.pair.token1.symbol}` }}</th>
+          <td>{{ order.status_ }}</td>
+          <td>{{ order.trigger.action }}</td>
+          <td>{{ order.execution.amount }}</td>
+          <td>{{ `${order.trigger.action} when ${order.type} hit ${order.trigger.target}` }}</td>
+          <td><b>2845.32</b></td>
+          <td>
+            <button v-if="order.status_ === 'paused' ">Resume</button>
+            <button v-else>Pause</button>
+            
+            <button>Delete</button>
+            </td>
         </tr>
       </tbody>
     </table>
@@ -36,9 +43,9 @@ export default {
     };
   },
   created: function () {
-    axios.get("http://52.14.127.250:3000/orders").then((res) => {
-      console.log(res);
-      this.orders = res.data.orders;
+    axios.get("http://localhost:3000/orders").then((res) => {
+      console.log(res)
+      this.orders = res.data?.orders;
     })
   },
 };

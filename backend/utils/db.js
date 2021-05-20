@@ -4,6 +4,7 @@ const DB = new AWS.DynamoDB.DocumentClient({
     region: config.AWS_REGION,
     apiVersion: '2012-08-10'
 });
+const uuid = require('uuid');
 
 const tableName = config.TABLE_NAME;
 
@@ -72,13 +73,16 @@ module.exports = {
         return await DB.delete(params, catcher).promise()
     },
 
-    getOrders: async function() {
+    getOrders: async function(status) {
+        const ExpressionAttributeValues = {":pk": 'order'}
+        let FilterExpression = "pk = :pk"
+        if (status) {
+            ExpressionAttributeValues[":status"] = status
+            FilterExpression += " and status_ = :status"
+        }
         const data = await this.scan({
-            FilterExpression: "pk = :pk and status_ = :status",
-            ExpressionAttributeValues: {
-                ":pk": 'order',
-                ":status": 'active',
-            }
+            FilterExpression,
+            ExpressionAttributeValues
         })
         if (data["Items"]?.length === 0) {
             logger.warn("No active orders found in database")
@@ -117,6 +121,14 @@ module.exports = {
             Key: { "pk": "order", "uuid": uuid },
             data
         })
+    },
+
+    createOrder: async function(data) {
+        const response = await db.update({
+          Key: { "pk": "order", "sk": uuid.v4() },
+          data
+        })
+        return response
     }
 }
 

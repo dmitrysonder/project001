@@ -1,9 +1,9 @@
 const { createLogger, format, transports } = require('winston');
 const { combine, splat, timestamp, printf } = format;
 
-const myFormat = printf( ({ level, message, timestamp, ...metadata}) => {
-  let msg = `${timestamp} [${level}] : ${message} `  
-  if(metadata) {
+const myFormat = printf(({ level, message, timestamp, ...metadata }) => {
+  let msg = `${timestamp} [${level}] : ${message} `
+  if (metadata) {
     if (metadata.file) {
       msg = `[${metadata.file}] ` + msg
     } else {
@@ -13,7 +13,8 @@ const myFormat = printf( ({ level, message, timestamp, ...metadata}) => {
   return msg
 });
 
-exports.logger = createLogger({
+exports.getLogger = function (fileName) {
+  const logger = createLogger({
     level: 'info',
     format: combine(
       format.colorize(),
@@ -21,9 +22,12 @@ exports.logger = createLogger({
       timestamp(),
       myFormat
     ),
+    defaultMeta: { file: fileName },
     transports: [
       new transports.File({ filename: './logs/error.log', level: 'error' }),
-      new transports.File({ filename: './logs/combined.log' , level: 'debug'}),
+      new transports.File({ filename: './logs/combined.log', level: 'debug' }),
       new (transports.Console)({ level: 'debug' }),
     ],
-});
+  });
+  return logger
+}

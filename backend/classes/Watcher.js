@@ -1,5 +1,6 @@
 const args = require('minimist')(process.argv.slice(2), { string: ['token1_address', 'pair_pool', 'token0_address'] });
-const { logger } = require('../utils/logger')
+const { getLogger } = require('../utils/logger');
+const logger = getLogger("Watcher")
 const { ethers } = require('ethers')
 const fs = require('fs')
 const { config } = require('../config');
