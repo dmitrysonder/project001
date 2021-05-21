@@ -7,17 +7,16 @@ module.exports.constants = {
         "Bot"
     ],
     generalFields: {
-        token0: { type: "search", label: "Base Token"},
-        token1: { type: "search", label: "Quote Token"},
-        gasPrice: {type: "input", label: "Gas Price"},
-        maxSlippage: {type: "input", label: "Max Slippage"},
-        amount0: {type: "input", label: "Amount of Base Token to"},
-        amount1: {type: "input", label: "Amount of Quote Token to"},
+        token0: { type: "search", label: "Base Token", placeholder: "ETH or 0x..."},
+        token1: { type: "search", label: "Quote Token", placeholder: "ETH or 0x..."},
+        amount0: {type: "text", label: "Amount (Base Token)"},
+        gasPrice: {type: "number", label: "Gas Price"},
+        maxSlippage: {type: "text", label: "Max Slippage"}
     },
     
     limitOrder: {
         trade: {label: "Buy/Sell", type: "dropdown", options: ["limit buy", "limit sell"]},
-        price: {label: "Target Price", type: "input"}
+        price: {label: "Target Price", type: "text"}
     },
     timestampOrder: {
         trade: {label: "Buy/Sell", type: "dropdown", options: ["buy", "sell"]},
@@ -25,15 +24,13 @@ module.exports.constants = {
     },
     listingOrder: {
         trade: {label: "Buy/Sell", type: "dropdown", options: ["buy", "sell"]},
-        timestamp: {label: "Date & Time", type: "date"}
     },
     frontRun: {
-        volume0: {label: "Min Volume in Base Token", type: "input"},
-        volume1: {label: "Min Volume in Quote Token", type: "input"},
-        sandwitchTrade: {label: "Sandwitch Trade", type: "checkbox"}
+        volume0: {label: "Min Volume (Base Token)", type: "text"},
+        volume1: {label: "Min Volume (Quote Token)", type: "text"},
     },
     bot: {
-        priceToBuy: {label: "Price when Buy", type: "input"},
-        priceToSell: {label: "Price when Sell", type: "input"}
+        priceToBuy: {label: "Price when Buy", type: "text"},
+        priceToSell: {label: "Price when Sell", type: "text"}
     }
 }

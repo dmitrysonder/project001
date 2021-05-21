@@ -30,9 +30,9 @@ server.post('/new', async (request, reply) => {
 })
 
 server.post('/update', async (request, reply) => {
-  const uuid = request.body?.uuid
+  const uuid = request.query.uuid
   if (!uuid) reply.code(400)
-  
+
   const response = await db.updateOrder(uuid, request.body)
   if (response.error) reply.code(500)
   reply
@@ -40,7 +40,7 @@ server.post('/update', async (request, reply) => {
     .send(response)
 })
 
-server.get('/delete', async (request, reply) => {
+server.post('/delete', async (request, reply) => {
   return 'order delete'
 })
 

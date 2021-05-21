@@ -1,20 +1,88 @@
 <template>
-  <div class="container">
+  <div class="container" style="max-width: 950px">
     <h4>Create Order</h4>
-    <label>Type</label>
-    <select @change="onTypeChange($event)">
-      <option v-for="type in types" v-bind:key="type" v-bind:value="type">
-        {{ type }}
-      </option>
-    </select>
 
     <div class="box">
       <div id="createOrder">
+        <!-- <div
+          class="list"
+          v-for="name in Object.keys(generalFields)"
+          v-bind:key="name"
+        >
+          <label v-bind:for="name">{{ generalFields[name]["label"] }}</label>
+          <input v-bind:name="name" v-bind:type="generalFields[name].type" />
+        </div>
+
         <div class="list" v-for="name in Object.keys(fields)" v-bind:key="name">
-          <label v-bind:for="name">{{fields[name]["label"]}}</label>
-          <input 
-          v-bind:name="name" 
-          v-bind:type="fields[name].type"/>
+          <label v-bind:for="name">{{ fields[name]["label"] }}</label>
+          <input v-bind:name="name" v-bind:type="fields[name].type" />
+        </div> -->
+
+        <div class="container">
+          <div class="form-group">
+            <label for="exampleFormControlSelect1">Type</label>
+            <select @change="onTypeChange($event)" class="form-control">
+              <option
+                v-for="type in types"
+                v-bind:key="type"
+                v-bind:value="type"
+              >
+                {{ type }}
+              </option>
+            </select>
+          </div>
+          <div class="row justify-content-around">
+            <div class="col-6 col-md-600px">
+              <form>
+                <div
+                  class="form-group"
+                  v-for="name in Object.keys(generalFields)"
+                  v-bind:key="name"
+                >
+                  <label v-bind:for="name">{{
+                    generalFields[name]["label"]
+                  }}</label>
+                  <input
+                    class="form-control"
+                    v-bind:name="name"
+                    v-bind:type="generalFields[name].type"
+                    v-bind:placeholder="generalFields[name].placeholder"
+                  />
+                </div>
+              </form>
+            </div>
+
+            <div class="col-6 md-500px" style="padding-left: 150px">
+              <form>
+                <div
+                  class="form-group"
+                  v-for="name in Object.keys(fields)"
+                  v-bind:key="name"
+                >
+                  <label
+                    v-bind:class="fields[name].labelClass"
+                    v-bind:for="name"
+                    >{{ fields[name]["label"] }}</label
+                  >
+                  <select v-if="fields[name].type === 'dropdown'" class="form-control">
+                    <option
+                v-for="option in fields[name].options"
+                v-bind:key="option"
+                v-bind:value="option"
+              >
+                {{ option }}
+              </option>
+                  </select>
+                  <input v-else
+                    class="form-control"
+                    v-bind:name="name"
+                    v-bind:type="fields[name].type"
+                  />
+                </div>
+                <button type="button" class="btn btn-success">Create</button>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -28,6 +96,7 @@ export default {
   name: "Create",
   data() {
     return {
+      generalFields: constants.generalFields,
       types: constants.types,
       fields: {},
     };
@@ -36,34 +105,19 @@ export default {
     onTypeChange(event) {
       switch (event.target.value) {
         case "Limit Order":
-          this.fields = {
-            ...constants.generalFields,
-            ...constants.limitOrder,
-          };
+          this.fields = constants.limitOrder;
           break;
         case "Timestamp Order":
-          this.fields = {
-            ...constants.generalFields,
-            ...constants.timestampOrder,
-          };
+          this.fields = constants.timestampOrder;
           break;
         case "Listing Order":
-          this.fields = {
-            ...constants.generalFields,
-            ...constants.listingOrder,
-          };
+          this.fields = constants.listingOrder;
           break;
         case "Front-Running":
-          this.fields = {
-            ...constants.generalFields,
-            ...constants.frontRun,
-          };
+          this.fields = constants.frontRun;
           break;
         case "Bot":
-          this.fields = {
-            ...constants.generalFields,
-            ...constants.bot,
-          };
+          this.fields = constants.bot;
           break;
       }
     },
@@ -75,19 +129,13 @@ export default {
 h3 {
   margin-bottom: 5%;
 }
-#id {
-  align-self: left;
-}
 .box {
   display: flex;
 }
-input {
-  margin: 5px;
-}
 label {
-  margin-right: 10px;
-}
-.list {
-  justify-content: right;
+  display: inline-block;
+  float: left;
+  clear: left;
+  text-align: right;
 }
 </style>
