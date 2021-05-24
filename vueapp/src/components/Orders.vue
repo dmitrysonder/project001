@@ -55,6 +55,7 @@
 <script>
 import axios from "axios";
 import { config } from "../../config";
+
 export default {
   name: "Orders",
   data() {
@@ -104,7 +105,7 @@ export default {
         const index = this.orders.findIndex((order) => order.uuid === uuid);
         this.orders.splice(index)
       });
-    },
+    }
   },
 };
 </script>

@@ -13,6 +13,7 @@ exports.config = {
     SUSHI_ROUTER: process.env.SUSHI_ROUTER || "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
     PANCAKE_ROUTER: process.env.PANCAKE_ROUTER || "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
     MNEMONIC: "organ phone easy person rent soap garbage safe finish arena liberty ring",
+    DEFAULT_DEADLINE: "10000000000",
     
     getProvider: function () {
         return ["mainnet", { infura: this.INFURA_KEY }]

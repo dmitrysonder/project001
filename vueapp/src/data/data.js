@@ -1,26 +1,27 @@
 module.exports.constants = {
-    types: [
-        "Limit Order",
-        "Timestamp Order",
-        "Listing Order",
-        "Front-Running",
-        "Bot"
-    ],
+    types: {
+        price: "Limit Order",
+        timestamp: "Timestamp Order",
+        listing: "Listing Order",
+        frontRunning: "Front-Running",
+        bot: "Bot"
+    },
     generalFields: {
-        token0: { type: "search", label: "Base Token", placeholder: "ETH or 0x..."},
-        token1: { type: "search", label: "Quote Token", placeholder: "ETH or 0x..."},
-        amount0: {type: "text", label: "Amount (Base Token)"},
+        token0: { type: "search", label: "Base Token Address", placeholder: "0x..."},
+        token1: { type: "search", label: "Quote Token Address", placeholder: "0x..."},
+        amount: {type: "text", label: "Amount (Base Token)"},
         gasPrice: {type: "number", label: "Gas Price"},
         maxSlippage: {type: "text", label: "Max Slippage"}
     },
     
     limitOrder: {
-        trade: {label: "Buy/Sell", type: "dropdown", options: ["limit buy", "limit sell"]},
+        trade: {label: "Buy/Sell", type: "dropdown", options: ["buy", "sell"]},
         price: {label: "Target Price", type: "text"}
     },
     timestampOrder: {
         trade: {label: "Buy/Sell", type: "dropdown", options: ["buy", "sell"]},
-        timestamp: {label: "Date & Time", type: "date"}
+        date: {label: "Date", type: "date"},
+        time: {label: "Time", type: "time"}
     },
     listingOrder: {
         trade: {label: "Buy/Sell", type: "dropdown", options: ["buy", "sell"]},

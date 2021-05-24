@@ -21,13 +21,13 @@
         <div class="container">
           <div class="form-group">
             <label for="exampleFormControlSelect1">Type</label>
-            <select @change="onTypeChange($event)" class="form-control">
+            <select name="orderType" @change="onTypeChange($event)" class="form-control">
               <option
-                v-for="type in types"
+                v-for="type in Object.keys(types)"
                 v-bind:key="type"
                 v-bind:value="type"
               >
-                {{ type }}
+                {{ types[type] }}
               </option>
             </select>
           </div>
@@ -64,7 +64,7 @@
                     v-bind:for="name"
                     >{{ fields[name]["label"] }}</label
                   >
-                  <select v-if="fields[name].type === 'dropdown'" class="form-control">
+                  <select v-if="fields[name].type === 'dropdown'" v-bind:name="name" class="form-control">
                     <option
                 v-for="option in fields[name].options"
                 v-bind:key="option"
@@ -79,7 +79,7 @@
                     v-bind:type="fields[name].type"
                   />
                 </div>
-                <button type="button" class="btn btn-success">Create</button>
+                <button v-on:click="createOrder" type="submit" class="btn btn-success">Create</button>
               </form>
             </div>
           </div>
@@ -91,6 +91,8 @@
 
 <script>
 import { constants } from "../data/data";
+import axios from "axios";
+import { config } from "../../config";
 
 export default {
   name: "Create",
@@ -104,23 +106,40 @@ export default {
   methods: {
     onTypeChange(event) {
       switch (event.target.value) {
-        case "Limit Order":
+        case "price":
           this.fields = constants.limitOrder;
           break;
-        case "Timestamp Order":
+        case "timestamp":
           this.fields = constants.timestampOrder;
           break;
-        case "Listing Order":
+        case "listing":
           this.fields = constants.listingOrder;
           break;
-        case "Front-Running":
+        case "frontRunning":
           this.fields = constants.frontRun;
           break;
-        case "Bot":
+        case "bot":
           this.fields = constants.bot;
           break;
       }
     },
+    createOrder(event) {
+      event.preventDefault()
+      const data = {
+
+      }
+      document.querySelectorAll("input").forEach(el => data[el.name] = el.value)
+      document.querySelectorAll("select").forEach(el => data[el.name] = el.value)
+      console.log(data)
+      axios({
+        method: "POST",
+        url: `${config.rest}/new`,
+        data
+      }).then((order) => {
+        console.log(order)
+        //this.orders.push(order)
+      });
+    }
   },
 };
 </script>

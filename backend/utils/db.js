@@ -1,5 +1,7 @@
 const AWS = require('aws-sdk');
 const {config} = require (`../config`);
+const { getLogger } = require('./logger')
+const logger = getLogger("server")
 const DB = new AWS.DynamoDB.DocumentClient({
     region: config.AWS_REGION,
     apiVersion: '2012-08-10'
@@ -124,13 +126,24 @@ module.exports = {
     },
 
     createOrder: async function(data) {
-        const response = await db.update({
-          Key: { "pk": "order", "sk": uuid.v4() },
+        const response = await this.update({
+          Key: { "pk": "order", "uuid": uuid.v4() },
           data
+        })
+        return response
+    },
+    
+    createBot: async function(data) {
+        const response = await this.update({
+            Key: { "pk": "bot", "uuid": uuid.v4() },
+            data
         })
         return response
     }
 }
 
-const catcher = (err, data) => err ? err : data;
+const catcher = (err, data) => {
+    if (err) logger.error(err);
+    return err ? err : data
+}
 
