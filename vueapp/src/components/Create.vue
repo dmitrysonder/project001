@@ -100,7 +100,7 @@ export default {
     return {
       generalFields: constants.generalFields,
       types: constants.types,
-      fields: {},
+      fields: {}
     };
   },
   methods: {
@@ -135,9 +135,8 @@ export default {
         method: "POST",
         url: `${config.rest}/new`,
         data
-      }).then((order) => {
-        console.log(order)
-        //this.orders.push(order)
+      }).then((response) => {
+        this.orders.push(response.data.Attributes)
       });
     }
   },

@@ -87,11 +87,11 @@ module.exports = class Controller {
     generateArgv(order) {
         const execArgv = [
             `--uuid=${order.uuid}`,
-            `--type=${order.type}`,
+            `--type=${order.type_}`,
             `--token0_decimals=${order.pair.token0.decimals}`,
             `--token1_decimals=${order.pair.token1.decimals}`,
-            `--trigger_action=${order.trigger.action}`,
-            `--trigger_target=${order.trigger.target}`,
+            `--trigger_action=${order.trigger_.action}`,
+            `--trigger_target=${order.trigger_.target}`,
             `--pair_pool=${order.pair.pool}`,
         ]
         return execArgv

@@ -19,11 +19,11 @@
             {{ `${order.pair.token0.symbol}-${order.pair.token1.symbol}` }}
           </th>
           <td>{{ order.status_ }}</td>
-          <td>{{ order.trigger.action }}</td>
+          <td>{{ order.trigger_.action }}</td>
           <td>{{ order.execution.amount }}</td>
           <td>
             {{
-              `${order.trigger.action} when ${order.type} hit ${order.trigger.target}`
+              `${order.trigger_.action} when ${order.type} hit ${order.trigger_.target}`
             }}
           </td>
           <td><b>2845.32</b></td>

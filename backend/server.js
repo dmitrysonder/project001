@@ -23,15 +23,16 @@ server.get('/orders', async (request, reply) => {
 server.post('/new', async (request, reply) => {
   if (!request.body) reply.code(400)
     .send("Wrong request. Use POST with body")
-  const payload = validateOrder(request.body)
+  const payload = await validateOrder(request.body)
   if (!payload) reply.code(400)
     .send("Fill all inputs")
   let response;
-  if (payload.type === 'bot') {
+  if (payload.type_ === 'bot') {
     logger.debug("Creating new bot with")
     response = await db.createBot(payload)
   } else {
     logger.debug("Creating new order")
+    console.log(payload)
     response = await db.createOrder(payload)
   }
   
@@ -67,15 +68,16 @@ server.listen(config.PORT, "0.0.0.0", (err, address) => {
   logger.info(`Server listening at ${address}`);
 })
 
-function validateOrder(body) {
-  const emptyValues = Object.keys(body).filter(key => body.orderType === 'timestamp' && key === 'token1' ? false : body[key])
+async function validateOrder(body) {
+  const emptyValues = Object.keys(body).filter(key => body.orderType === 'timestamp' && key === 'token1' ? body[key] : false)
+  console.log(emptyValues)
   if (emptyValues.length > 0) {
     return false
   }
-  const token0 = utils.recognizeToken(body.token0)
-  const token1 = utils.recognizeToken(body.token1)
-  const pool = utils.recognizePool(token0,token1)
-  const trigger = utils.recognizeTrigger(body)
+  const token0 = await utils.recognizeToken(body.token0)
+  const token1 = await utils.recognizeToken(body.token1)
+  const pool = await utils.recognizePool(token0,token1)
+  const trigger_ = utils.recognizeTrigger(body)
   return {
     execution: {
       amount: body.amount,
@@ -90,6 +92,7 @@ function validateOrder(body) {
     },
     status_: "active",
     type_: body.orderType,
-    trigger
+    trigger_,
+    exchange: 'uniswap'
   }
 }

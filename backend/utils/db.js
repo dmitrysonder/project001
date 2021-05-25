@@ -105,7 +105,7 @@ module.exports = {
             logger.warn("No order found by uuid " + uuid)
             return false
         }
-        return data["Items"].filter(order => order.type)[0]
+        return data["Items"].filter(order => order.type_)[0]
     },
 
     deleteOrder: async function(uuid) {

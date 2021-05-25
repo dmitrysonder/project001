@@ -1,13 +1,17 @@
-const {Contract} = require('ethers')
+const {Contract, getDefaultProvider} = require('ethers')
 const {config} = require('../config')
+const PROVIDER = getDefaultProvider(...config.getProvider())
 
 module.exports = {
 
-    recognizePool: function (token0, token1) {
-        return "0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852"
+    recognizePool: async function (token0, token1) {
+        const factory = new Contract(config.UNISWAP_FACTORY, config.getAbi("UniswapFactory.abi.json"), PROVIDER)
+        const pair = await factory.getPair(token0.address, token1.address)
+        console.log(pair)
+        return pair
     },
-    recognizeToken: async function (address, provider) {
-        const token = new Contract(address, config.getAbi('ERC20.abi.json'), config.getProvider())
+    recognizeToken: async function (address) {
+        const token = new Contract(address, config.getAbi('ERC20.abi.json'), PROVIDER)
         const decimals = await token.decimals()
         const symbol = await token.symbol()
         return {
