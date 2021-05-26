@@ -4,20 +4,6 @@
 
     <div class="box">
       <div id="createOrder">
-        <!-- <div
-          class="list"
-          v-for="name in Object.keys(generalFields)"
-          v-bind:key="name"
-        >
-          <label v-bind:for="name">{{ generalFields[name]["label"] }}</label>
-          <input v-bind:name="name" v-bind:type="generalFields[name].type" />
-        </div>
-
-        <div class="list" v-for="name in Object.keys(fields)" v-bind:key="name">
-          <label v-bind:for="name">{{ fields[name]["label"] }}</label>
-          <input v-bind:name="name" v-bind:type="fields[name].type" />
-        </div> -->
-
         <div class="container">
           <div class="form-group">
             <label for="exampleFormControlSelect1">Type</label>
@@ -103,6 +89,9 @@ export default {
       fields: {}
     };
   },
+  mounted() {
+    this.fields = constants.limitOrder
+  },
   methods: {
     onTypeChange(event) {
       switch (event.target.value) {
@@ -125,12 +114,9 @@ export default {
     },
     createOrder(event) {
       event.preventDefault()
-      const data = {
-
-      }
+      const data = {}
       document.querySelectorAll("input").forEach(el => data[el.name] = el.value)
       document.querySelectorAll("select").forEach(el => data[el.name] = el.value)
-      console.log(data)
       axios({
         method: "POST",
         url: `${config.rest}/new`,

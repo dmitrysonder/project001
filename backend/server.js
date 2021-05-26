@@ -32,7 +32,6 @@ server.post('/new', async (request, reply) => {
     response = await db.createBot(payload)
   } else {
     logger.debug("Creating new order")
-    console.log(payload)
     response = await db.createOrder(payload)
   }
   
@@ -49,11 +48,18 @@ server.post('/update', async (request, reply) => {
   const response = await db.updateOrder(uuid, request.body)
   if (response.error) reply.code(500)
   reply
-    .code(201)
+    .code(200)
     .send(response)
 })
 
 server.post('/delete', async (request, reply) => {
+  const uuid = request.query.uuid
+  if (!uuid) reply.code(400)
+  const response = await db.deleteOrder(uuid)
+  if (response.error) reply.code(500)
+  reply
+    .code(200)
+    .send(response)
   return 'order delete'
 })
 
@@ -70,7 +76,6 @@ server.listen(config.PORT, "0.0.0.0", (err, address) => {
 
 async function validateOrder(body) {
   const emptyValues = Object.keys(body).filter(key => body.orderType === 'timestamp' && key === 'token1' ? body[key] : false)
-  console.log(emptyValues)
   if (emptyValues.length > 0) {
     return false
   }

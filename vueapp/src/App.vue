@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <Create />
+    <Create :orders="orders"/>
     <Orders />
   </div>
 </template>
@@ -14,6 +14,11 @@ export default {
   components: {
     Orders,
     Create
+  },
+  data() {
+    return {
+      orders: []
+    }
   }
 }
 </script>

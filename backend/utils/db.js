@@ -110,10 +110,9 @@ module.exports = {
 
     deleteOrder: async function(uuid) {
         return await this.delete({
-            KeyConditionExpression: "pk = :pk and sk = :holvi",
-            ExpressionAttributeValues: {
-                ":pk": 'order',
-                ":sk": uuid
+            Key: {
+                "pk": "order",
+                "uuid": uuid
             }
         })
     },

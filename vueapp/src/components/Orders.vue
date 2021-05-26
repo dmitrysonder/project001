@@ -15,19 +15,23 @@
       </thead>
       <tbody>
         <tr v-for="order in orders" v-bind:key="order.uuid">
-          <th scope="row">
+          <th scope="row"><a v-bind:href="'https://etherscan.io/address/'+order.pair.pool">
             {{ `${order.pair.token0.symbol}-${order.pair.token1.symbol}` }}
+            </a>
           </th>
           <td>{{ order.status_ }}</td>
           <td>{{ order.trigger_.action }}</td>
           <td>{{ order.execution.amount }}</td>
           <td>
             {{
-              `${order.trigger_.action} when ${order.type} hit ${order.trigger_.target}`
+              `${order.trigger_.action} when ${order.type_} hit ${order.trigger_.target}`
             }}
           </td>
           <td><b>2845.32</b></td>
           <td>
+            <button v-on:click="editOrder(order)" type="button" class="btn btn-outline-warning btn-sm">
+              Edit
+            </button>
             <button
               v-if="order.status_ === 'paused'"
               v-on:click="resumeOrder(order.uuid)"
@@ -83,6 +87,10 @@ export default {
         this.orders[index].status_ = "active";
       });
     },
+    editOrder(order) {
+      console.log(order.uuid)
+      console.log(this.state)
+    },
     pauseOrder(uuid) {
       axios({
         method: "POST",
@@ -103,7 +111,7 @@ export default {
         params: {uuid}
       }).then(() => {
         const index = this.orders.findIndex((order) => order.uuid === uuid);
-        this.orders.splice(index)
+        this.orders.splice(index,1)
       });
     }
   },
