@@ -1,30 +1,37 @@
-const args = require('minimist')(process.argv.slice(2), { string: ['token1_address', 'pair_pool', 'token0_address'] });
 const { getLogger } = require('../utils/logger');
-const logger = getLogger("Watcher")
+const logger = getLogger("UniswapWatcher")
 const { ethers } = require('ethers')
 const fs = require('fs')
 const { config } = require('../config');
 const db = require('../utils/db');
-const {UniswapWatcher} = require("./Watchers/UniswapWatcher")
 
 
-class Watcher {
+export class UniswapWatcher {
 
     constructor(params) {
-        logger.info(`Running a "${params.exchange}" watcher for order ${params.uuid}`)
+        if (!params || !params.type || !params.uuid) return logger.error("No required params uuid and type", params)
 
-        switch (params.exchange) {
-            case "uniswap":
-                this.watcher = new UniswapWatcher(params)
+        this.ABI = config.getAbi("Pair.abi.json")
+        this.provider = ethers.getDefaultProvider(...config.getProvider())
+
+        switch (params.type) {
+            case "timestamp":
+                this.runTimestampWatcher(params)
                 break;
-            case "quickswap":
-                this.watcher = new QuickswapWatcher(params)
+            case "listing":
+                this.runListingWatcher(params)
                 break;
-            case "sushiswap":
-                this.watcher = new ShushiswapWatcher(params)
+            case "price":
+                this.runPriceWatcher(params)
+                break;
+            case "frontRunning":
+                this.runMempoolWatcher(params)
+                break;
+            case "bot":
+                this.runBotPriceWatcher(params)
                 break;
             default:
-                logger.error(`Unexpected exchange passed: ${params.exchange}`)
+                logger.error(`Unexpected watcher type passed: ${params.type}`)
         }
     }
 
@@ -91,5 +98,3 @@ class Watcher {
 
     }
 }
-
-const watcher = new Watcher(args)
