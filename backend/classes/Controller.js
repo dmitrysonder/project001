@@ -5,7 +5,7 @@ const logger = getLogger("Controller")
 const { fork } = require('child_process');
 const fs = require('fs')
 const path = require('path');
-const  Executor  = require('./Executor');
+const Executor = require('./Executor');
 
 module.exports = class Controller {
 
@@ -18,7 +18,7 @@ module.exports = class Controller {
     async init() {
         this.executor = new Executor()
 
-        await this.killWatchers()
+        await this.killProcesses()
         const orders = await db.getOrders("active")
         logger.info(`Loading watchers for ${orders.length} active orders from the database`)
         if (orders) {
@@ -32,7 +32,7 @@ module.exports = class Controller {
         for (const watcher of this.watchers) {
             watcher.worker.on('message', async data => {
                 logger.info(`Received trigger for order ${data.uuid} with message:\n${data.msg}`)
-                const watcher = this.watchers.find(obj => obj.order.uuid === data.uuid)
+                const watcher = this.getWatcher(data.uuid)
                 if (!watcher) throw Error(`Can't find watcher for ${data.uuid}`)
                 const tx = await this.executor.execute(watcher.order)
                 this.handleTrade(tx, watcher)
@@ -42,38 +42,63 @@ module.exports = class Controller {
 
     async handleTrade(tx, watcher) {
         if (tx.ok) {
-            await this.killTrade(watcher)
-            if (watcher.order.bot) await this.createNewBotTrade(watcher.order.bot)
+            await this.removeWatcher(watcher)
+            await db.updateOrder(watcher.order.uuid, {
+                status_: 'completed',
+                reason: "transaction executed"
+            })
+            if (watcher.order.botId) await this.createNewBotTrade(watcher)
         } else {
-            await this.pauseTrade(watcher, "transaciton failed")
+            await this.killProcesses(watcher.worker.pid)
+            await db.updateOrder(watcher.order.uuid, {
+                status_: 'paused',
+                reason: "transaction failed"
+            })
         }
     }
 
-    async killTrade(watcher) {
-        await this.killWatchers(watcher.worker.pid)
-        await db.deleteOrder(watcher.order.uuid)
+    async createNewBotTrade(watcher) {
+        const bot = await db.getBot(watcher.order.botId)
+        const activeOrders = await db.getBotOrders(botId)
+        const lastCompletedOrder = await db.getBotLastCompletedTrade(botId)
+        if (activeOrders.length === 0) {
+            const response = await db.createOrder({
+                execution: {
+                    amount: bot.amount,
+                    deadline: config.DEFAULT_DEADLINE,
+                    gasPrice: bot.gasPrice,
+                    maxSlippage: bot.maxSlippage
+                },
+                pair: bot.pair,
+                status_: "active",
+                type_: "price",
+
+                trigger_: {
+                    action: lastCompletedOrder._trigger.action === 'buy' ? 'sell' : 'buy',
+                    target: lastCompletedOrder._trigger.action === 'buy' ? bot.amountToSell : bot.amountToBuy
+                },
+                exchange: bot.exchange
+            })
+            console.log(response)
+            this.createWatcher(response["Items"][0])
+        }
     }
 
-    async pauseTrade(watcher, reason) {
-        await this.killWatchers(watcher.worker.pid)
-        await this.updateOrderStatus(watcher.order.uuid, 'paused', reason)
-    }
-
-    async updateOrderStatus(uuid, status, reason) {
-        await db.updateOrder(uuid, {
-            status_: status,
-            reason: reason
-        })
+    async updateWatcher(uuid) {
+        const watcher = this.getWatcher(uuid)
+        this.removeWatcher(watcher)
+        const order = await db.getOrder(uuid)
+        this.createWatcher(order)
     }
 
     createWatcher(order) {
         const execArgv = this.generateArgv(order)
         const options = {
-            stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ]
+            stdio: ['pipe', 'pipe', 'pipe', 'ipc']
         };
         const pathToWatcher = path.resolve(__dirname, "Watcher.js")
         if (!fs.existsSync(pathToWatcher)) {
-            logger.error(`Path to watcher is not found` , pathToWatcher)
+            logger.error(`Path to watcher is not found`, pathToWatcher)
             throw Error("Wrong Watcher.js path")
         }
 
@@ -82,6 +107,15 @@ module.exports = class Controller {
             order,
             worker
         })
+        return true
+    }
+
+    async removeWatcher(watcher) {
+        await this.killProcesses(watcher.worker.pid)
+        const index = this.watchers.findIndex(obj => obj.order.uuid === watcher.order.uuid)
+        if (index > -1) {
+            this.watchers.slice(index, 1)
+        }
     }
 
     generateArgv(order) {
@@ -97,8 +131,13 @@ module.exports = class Controller {
         return execArgv
     }
 
+    getWatcher(uuid) {
+        const watcher = this.watchers.find(obj => obj.order.uuid === uuid)
+        if (!watcher) logger.error(`Watcher ${uuid} is not found`)
+        return watcher
+    }
 
-    async killWatchers(pid) {
+    async killProcesses(pid) {
         ps.lookup({
             command: 'node',
         }, function (err, resultList) {

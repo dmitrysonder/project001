@@ -15,7 +15,7 @@ class Watcher {
 
         this.ABI = config.getAbi("Pair.abi.json")
         this.provider = ethers.getDefaultProvider(...config.getProvider())
-        
+
         logger.info(`Running a "${params.type}" Watcher for order ${params.uuid}`)
 
         switch (params.type) {
@@ -28,8 +28,11 @@ class Watcher {
             case "price":
                 this.runPriceWatcher(params)
                 break;
-            case "mempool":
+            case "frontRunning":
                 this.runMempoolWatcher(params)
+                break;
+            case "bot":
+                this.runBotPriceWatcher(params)
                 break;
             default:
                 logger.error(`Unexpected watcher type passed: ${params.type}`)
@@ -42,6 +45,32 @@ class Watcher {
 
     runListingWatcher(params) {
 
+    }
+
+    runBotPriceWatcher(params) {
+        const contract = new ethers.Contract(params.pair_pool, this.ABI, this.provider)
+        logger.debug(`Listening price change events on pool contract: ${contract.address}`)
+
+        contract.on("Sync", (reserve0, reserve1) => {
+            const price = (reserve1 / reserve0) * Math.pow(10, params.token0_decimals - params.token1_decimals)
+            logger.debug(`Price changed: ${price.toFixed(2)} for ${params.uuid}.\nTarget price for ${params.trigger_action} ${params.trigger_target}`)
+
+            if (price <= params.trigger_priceToBuy) {
+                process.send({
+                    uuid: params.uuid,
+                    data: price,
+                    msg: `Price for ${params.pair_name} is ${price} and it's below target ${params.trigger_priceToBuy}`
+                })
+            }
+            
+            if (price >= params.trigger_priceToSell) {
+                process.send({
+                    uuid: params.uuid,
+                    data: price,
+                    msg: `Price for ${params.pair_name} is ${price} and it's above target ${params.trigger_priceToSell}`
+                })
+            }
+        });
     }
 
     runPriceWatcher(params) {

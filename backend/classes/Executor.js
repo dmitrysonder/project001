@@ -12,12 +12,13 @@ module.exports = class Executor {
         this.sushiswap = new SushiSwap(config.SUSHI_ROUTER);
     }
 
-    async execute(order) {
+    async execute(order, trade) {
+        
         switch(order?.exchange) {
             case 'uniswap':
-                return await this.uniswap.execute(order)
+                return await this.uniswap.execute(order, trade)
             case 'sushiswap':
-                return await this.sushiswap.execute(order)
+                return await this.sushiswap.execute(order, trade)
             default:
                 logger.error(`Unexpected exchange ${order.exchange}`)
                 return false

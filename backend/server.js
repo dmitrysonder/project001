@@ -8,7 +8,7 @@ const Controller = require("./classes/Controller")
 
 const server = fastify()
 server.register(require('fastify-cors'), {})
-
+const controller = new Controller()
 
 server.get('/orders', async (request, reply) => {
   const orders = await db.getOrders()
@@ -34,8 +34,10 @@ server.post('/new', async (request, reply) => {
     logger.debug("Creating new order")
     response = await db.createOrder(payload)
   }
-  
   if (response.error) reply.code(500)
+  const watcherCreated = controller.createWatcher(response.Items[0])
+
+  if (!watcherCreated) reply.code(500)
   reply
     .code(201)
     .send(response)
@@ -45,7 +47,9 @@ server.post('/update', async (request, reply) => {
   const uuid = request.query.uuid
   if (!uuid) reply.code(400)
 
-  const response = await db.updateOrder(uuid, request.body)
+  const payload = await validateOrder(request.body)
+  const response = await db.updateOrder(uuid, payload)
+  const isControlled = await controller.updateWatcher(uuid)
   if (response.error) reply.code(500)
   reply
     .code(200)
@@ -55,16 +59,17 @@ server.post('/update', async (request, reply) => {
 server.post('/delete', async (request, reply) => {
   const uuid = request.query.uuid
   if (!uuid) reply.code(400)
-  const response = await db.deleteOrder(uuid)
-  if (response.error) reply.code(500)
+
+  const dbUpdated = await db.deleteOrder(uuid)
+  if (!dbUpdated) reply.code(500)
+  await controller.removeWatcher(uuid)
   reply
     .code(200)
-    .send(response)
-  return 'order delete'
+    .send(dbUpdated)
 })
 
 
-const controller = new Controller()
+
 server.listen(config.PORT, "0.0.0.0", (err, address) => {
   logger.warn(`Server is starting...`);
   if (err) {
@@ -75,10 +80,10 @@ server.listen(config.PORT, "0.0.0.0", (err, address) => {
 })
 
 async function validateOrder(body) {
-  const emptyValues = Object.keys(body).filter(key => body.orderType === 'timestamp' && key === 'token1' ? body[key] : false)
-  if (emptyValues.length > 0) {
-    return false
-  }
+  // const emptyValues = Object.keys(body).filter(key => body.orderType === 'timestamp' && key === 'token1' ? body[key] : false)
+  // if (emptyValues.length > 0) {
+  //   return false
+  // }
   const token0 = await utils.recognizeToken(body.token0)
   const token1 = await utils.recognizeToken(body.token1)
   const pool = await utils.recognizePool(token0,token1)
@@ -98,6 +103,6 @@ async function validateOrder(body) {
     status_: "active",
     type_: body.orderType,
     trigger_,
-    exchange: 'uniswap'
+    exchange: body.exchange
   }
 }

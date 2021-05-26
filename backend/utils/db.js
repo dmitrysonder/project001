@@ -95,17 +95,17 @@ module.exports = {
 
     getOrder: async function(uuid) {
         const data = await this.query({
-            KeyConditionExpression: "pk = :pk and sk = :holvi",
+            KeyConditionExpression: "pk = :pk and uuid = :uuid",
             ExpressionAttributeValues: {
                 ":pk": 'order',
-                ":sk": uuid
+                ":uuid": uuid
             }
         })
         if (data["Items"]?.length === 0) {
             logger.warn("No order found by uuid " + uuid)
             return false
         }
-        return data["Items"].filter(order => order.type_)[0]
+        return data["Items"][0]
     },
 
     deleteOrder: async function(uuid) {
@@ -138,6 +138,37 @@ module.exports = {
             data
         })
         return response
+    },
+
+    getBot: async function(uuid) {
+        const data = await this.query({
+            KeyConditionExpression: "pk = :pk and uuid = :uuid",
+            ExpressionAttributeValues: {
+                ":pk": 'bot',
+                ":uuid": uuid
+            }
+        })
+        if (data["Items"]?.length === 0) {
+            logger.warn("No bot found by uuid " + uuid)
+            return false
+        }
+        return data["Items"][0]
+    },
+
+    getBotOrders: async function(botId) {
+        const data = await this.query({
+            KeyConditionExpression: "pk = :pk and botId = :botId and status_ <> :status",
+            ExpressionAttributeValues: {
+                ":pk": 'order',
+                ":botId": botId,
+                ":status": 'completed'
+            }
+        })
+        if (data["Items"]?.length === 0) {
+            logger.warn("No orders found for bot: " + botId)
+            return false
+        }
+        return data["Items"]
     }
 }
 

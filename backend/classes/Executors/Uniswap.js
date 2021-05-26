@@ -15,17 +15,17 @@ module.exports = class Uniswap {
         logger.info("Uniswap router is initialized")
     }
 
-    async execute(order) {
-        logger.info(`Executing order ${order.uuid}`)
-        switch (order.execution.type) {
+    async execute(method, params) {
+        logger.info(`Executing by method ${method}`)
+        switch (method) {
             case 'swapTokensForExactETH':
-                return await this.swapTokensForExactETH(order.execution)
+                return await this.swapTokensForExactETH(params)
             case 'swapTokensForExactTokens':
-                return await this.swapTokensForExactTokens(order.execution)
+                return await this.swapTokensForExactTokens(params)
             case 'swapExactTokensForTokens':
-                return await this.swapExactTokensForTokens(order.execution)
+                return await this.swapExactTokensForTokens(params)
             case 'swapExactETHForTokens':
-                return await this.swapExactETHForTokens(order.execution)
+                return await this.swapExactETHForTokens(params)
             default:
                 logger.error(`Unexpected execution type in order ${order.uuid} : `)
                 return false
