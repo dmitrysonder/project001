@@ -10,17 +10,25 @@ module.exports = class Uniswap {
         this.ABI = config.getAbi("Router.abi.json")
         const provider = ethers.getDefaultProvider(...config.getProvider())
         const contract = new ethers.Contract(this.address, this.ABI, provider)
-        const signer = new ethers.Wallet.fromMnemonic(config.MNEMONIC)
-        this.contract = contract.connect(signer)
+        const account = new ethers.Wallet.fromMnemonic(config.MNEMONIC)
+        this.account = account
+        this.contract = contract.connect(account)
+        this.deadline = +new Date() + 100000
         logger.info("Uniswap router is initialized")
     }
 
     async execute(method, params) {
         logger.info(`Executing by method ${method}`)
+        params.to = this.account.address
+        params.deadline = this.deadline
+
         switch (method) {
             case 'swapTokensForExactETH':
+
                 return await this.swapTokensForExactETH(params)
             case 'swapTokensForExactTokens':
+                const amountIn = await this.contract.getAmountIn(params.amountOut, params.reserveIn, params.reserveOut)
+                const amountInMax = amountIn * params.maxSlippage / 100
                 return await this.swapTokensForExactTokens(params)
             case 'swapExactTokensForTokens':
                 return await this.swapExactTokensForTokens(params)
