@@ -1,24 +1,17 @@
 <template>
   <div id="app">
-    <Create :orders="orders"/>
+    <Create />
     <Orders />
   </div>
 </template>
 
 <script>
 import Orders from './components/Orders.vue'
-import Create from './components/Create.vue'
 
 export default {
   name: 'app',
   components: {
-    Orders,
-    Create
-  },
-  data() {
-    return {
-      orders: []
-    }
+    Orders
   }
 }
 </script>
