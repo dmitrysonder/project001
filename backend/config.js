@@ -1,7 +1,7 @@
 const { readFileSync } = require('fs');
 
 exports.config = {
-    IS_TESTNET: process.env.IS_TESTNET || true,
+    IS_TESTNET: process.env.IS_TESTNET || false,
     ENV: "DEV",
     PORT: 3000,
     AWS_REGION: process.env.AWS_REGION || 'us-east-2', // AWS Region
