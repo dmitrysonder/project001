@@ -1,6 +1,7 @@
-const {readFileSync} = require('fs');
+const { readFileSync } = require('fs');
 
 exports.config = {
+    IS_TESTNET: process.env.IS_TESTNET || true,
     ENV: "DEV",
     PORT: 3000,
     AWS_REGION: process.env.AWS_REGION || 'us-east-2', // AWS Region
@@ -15,11 +16,25 @@ exports.config = {
     PANCAKE_ROUTER: process.env.PANCAKE_ROUTER || "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
     MNEMONIC: "organ phone easy person rent soap garbage safe finish arena liberty ring",
     DEFAULT_DEADLINE: "10000000000",
-    
-    getProvider: function () {
-        return ["mainnet", { infura: this.INFURA_KEY }]
+
+    getProvider: function (network) {
+        switch (network) {
+            case 'eth':
+                return this.IS_TESTNET
+                ? ["ropsten", { infura: this.INFURA_KEY }]
+                : ["mainnet", { infura: this.INFURA_KEY }]
+            case 'bsc':
+                return this.IS_TESTNET
+                ? ["https://data-seed-prebsc-1-s1.binance.org:8545/"] 
+                : ["https://bsc-dataseed.binance.org/"]
+            case 'polygon':
+                return this.IS_TESTNET
+                ? [`https://polygon-mumbai.infura.io/v3/${this.INFURA_KEY}`]
+                : [`https://polygon-mainnet.infura.io/v3/${this.INFURA_KEY}`]
+        }
     },
-    getAbi: function(fileName) {
+
+    getAbi: function (fileName) {
         return JSON.parse((readFileSync(__dirname + '/abis/' + fileName).toString()))
     }
 }

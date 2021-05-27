@@ -7,14 +7,21 @@ module.exports = class Uniswap {
 
     constructor(address) {
         this.address = address
-        this.ABI = config.getAbi("Router.abi.json")
-        const provider = ethers.getDefaultProvider(...config.getProvider())
-        const contract = new ethers.Contract(this.address, this.ABI, provider)
+        this.ROUTER_ABI = config.getAbi("Router.abi.json")
+        const provider = ethers.getDefaultProvider(...config.getProvider('eth'))
+        const contract = new ethers.Contract(this.address, this.ROUTER_ABI, provider)
         const account = new ethers.Wallet.fromMnemonic(config.MNEMONIC)
         this.account = account
         this.contract = contract.connect(account)
         this.deadline = +new Date() + 100000
         logger.info("Uniswap router is initialized")
+    }
+
+    async recognizePool(token0, token1) {
+        const factory = new Contract(config.UNISWAP_FACTORY, config.getAbi("UniswapFactory.abi.json"), PROVIDER)
+        const pair = await factory.getPair(token0.address, token1.address)
+        console.log(pair)
+        return pair
     }
 
     async execute(method, params) {

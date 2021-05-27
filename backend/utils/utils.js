@@ -1,17 +1,37 @@
-const {Contract, getDefaultProvider} = require('ethers')
-const {config} = require('../config')
-const PROVIDER = getDefaultProvider(...config.getProvider())
+const { Contract, getDefaultProvider } = require('ethers')
+const { config } = require('../config')
 
 module.exports = {
 
-    recognizePool: async function (token0, token1) {
-        const factory = new Contract(config.UNISWAP_FACTORY, config.getAbi("UniswapFactory.abi.json"), PROVIDER)
-        const pair = await factory.getPair(token0.address, token1.address)
-        console.log(pair)
-        return pair
+    doTransaction: async function (operation) {
+        try {
+            operation()
+        } catch (e) {
+            return e
+        }
     },
-    recognizeToken: async function (address) {
-        const token = new Contract(address, config.getAbi('ERC20.abi.json'), PROVIDER)
+
+    getNetworkByExchange(exchange) {
+        switch (exchange) {
+            case 'uniswap':
+                return 'eth'
+            case 'sushiswap':
+                return 'eth'
+            case 'quickswap':
+                return 'polygon'
+            case 'pancakeswap':
+                return 'bsc'
+            default:
+                return 'eth'
+        }
+    },
+
+    getProviderForExchange(exchange) {
+        return getDefaultProvider(...config.getProvider(this.getNetworkByExchange(exchange)))
+    },
+
+    recognizeToken: async function (address, exchange) {
+        const token = new Contract(address, config.getAbi('ERC20.abi.json'), this.getProviderForExchange(exchange))
         const decimals = await token.decimals()
         const symbol = await token.symbol()
         return {
@@ -20,6 +40,7 @@ module.exports = {
             symbol
         }
     },
+
     recognizeTrigger: function (body) {
         switch (body.orderType) {
             case 'price':

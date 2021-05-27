@@ -17,7 +17,7 @@ module.exports = class Controller {
 
     async init() {
         this.executor = new Executor()
-
+        
         await this.killProcesses()
         const orders = await db.getOrders("active")
         logger.info(`Loading watchers for ${orders.length} active orders from the database`)
@@ -31,9 +31,9 @@ module.exports = class Controller {
     listen() {
         for (const watcher of this.watchers) {
             watcher.worker.on('message', async data => {
-                logger.info(`Received trigger for order ${data.uuid} with message:\n${data.msg}`)
-                const watcher = this.getWatcher(data.uuid)
-                if (!watcher) throw Error(`Can't find watcher for ${data.uuid}`)
+                logger.info(`Received trigger for order ${data?.uuid} with message:\n${data.msg}`)
+                const watcher = this.getWatcher(data?.uuid)
+                if (!watcher) throw Error(`Can't find watcher for ${data?.uuid}`)
                 const tx = await this.executor.execute(watcher.order)
                 this.handleTrade(tx, watcher)
             });
@@ -127,6 +127,7 @@ module.exports = class Controller {
             `--trigger_action=${order.trigger_.action}`,
             `--trigger_target=${order.trigger_.target}`,
             `--pair_pool=${order.pair.pool}`,
+            `--network=${utils.getNetworkByExchange(order.exchange)}`
         ]
         return execArgv
     }

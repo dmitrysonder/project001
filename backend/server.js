@@ -49,7 +49,7 @@ server.post('/update', async (request, reply) => {
 
   const payload = await validateOrder(request.body)
   const response = await db.updateOrder(uuid, payload)
-  const isControlled = await controller.updateWatcher(uuid)
+  await controller.updateWatcher(uuid)
   if (response.error) reply.code(500)
   reply
     .code(200)
@@ -66,6 +66,15 @@ server.post('/delete', async (request, reply) => {
   reply
     .code(200)
     .send(dbUpdated)
+})
+
+server.get('/switch', async (request, reply) => {
+  const IS_TESTNET = request.query.IS_TESTNET
+  if (IS_TESTNET === undefined || typeof IS_TESTNET !== 'boolean') reply.code(400)
+  process.env['IS_TESTNET'] = IS_TESTNET
+  reply
+    .code(200)
+    .send({IS_TESTNET})
 })
 
 

@@ -1,30 +1,34 @@
 const args = require('minimist')(process.argv.slice(2), { string: ['token1_address', 'pair_pool', 'token0_address'] });
 const { getLogger } = require('../utils/logger');
 const logger = getLogger("Watcher")
-const { ethers } = require('ethers')
-const fs = require('fs')
-const { config } = require('../config');
-const db = require('../utils/db');
-const {UniswapWatcher} = require("./Watchers/UniswapWatcher")
+const utils = require('../utils/utils')
 
 
 class Watcher {
-
     constructor(params) {
-        logger.info(`Running a "${params.exchange}" watcher for order ${params.uuid}`)
+        if (!params || !params.type || !params.uuid || !params.exchange) return logger.error("No required params uuid and type", params)
 
-        switch (params.exchange) {
-            case "uniswap":
-                this.watcher = new UniswapWatcher(params)
+        this.PAIR_ABI = config.getAbi("Pair.abi.json")
+        this.provider = utils.getProviderForExchange(params.exchange)
+
+        switch (params.type) {
+            case "timestamp":
+                this.runTimestampWatcher(params)
                 break;
-            case "quickswap":
-                this.watcher = new QuickswapWatcher(params)
+            case "listing":
+                this.runListingWatcher(params)
                 break;
-            case "sushiswap":
-                this.watcher = new ShushiswapWatcher(params)
+            case "price":
+                this.runPriceWatcher(params)
+                break;
+            case "frontRunning":
+                this.runMempoolWatcher(params)
+                break;
+            case "bot":
+                this.runBotPriceWatcher(params)
                 break;
             default:
-                logger.error(`Unexpected exchange passed: ${params.exchange}`)
+                logger.error(`Unexpected watcher type passed: ${params.type}`)
         }
     }
 
@@ -37,10 +41,12 @@ class Watcher {
     }
 
     runBotPriceWatcher(params) {
-        const contract = new ethers.Contract(params.pair_pool, this.ABI, this.provider)
+        const contract = new ethers.Contract(params.pair_pool, this.PAIR_ABI, this.provider)
         logger.debug(`Listening price change events on pool contract: ${contract.address}`)
 
+
         contract.on("Sync", (reserve0, reserve1) => {
+            process.send({uuid: params.uuid, msg: `Sync happened`})
             const price = (reserve1 / reserve0) * Math.pow(10, params.token0_decimals - params.token1_decimals)
             logger.debug(`Price changed: ${price.toFixed(2)} for ${params.uuid}.\nTarget price for ${params.trigger_action} ${params.trigger_target}`)
 
@@ -63,7 +69,7 @@ class Watcher {
     }
 
     runPriceWatcher(params) {
-        const contract = new ethers.Contract(params.pair_pool, this.ABI, this.provider)
+        const contract = new ethers.Contract(params.pair_pool, this.PAIR_ABI, this.provider)
         logger.debug(`Listening price change events on pool contract: ${contract.address}`)
 
         contract.on("Sync", (reserve0, reserve1) => {
