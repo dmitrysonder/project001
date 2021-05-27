@@ -1,4 +1,4 @@
-const { Contract, getDefaultProvider } = require('ethers')
+const { Contract, getDefaultProvider, ethers } = require('ethers')
 const { config } = require('../config')
 
 module.exports = {
@@ -19,7 +19,7 @@ module.exports = {
                 return 'eth'
             case 'quickswap':
                 return 'polygon'
-            case 'pancakeswap':
+            case 'pancake':
                 return 'bsc'
             default:
                 return 'eth'
@@ -36,7 +36,7 @@ module.exports = {
         const symbol = await token.symbol()
         return {
             address,
-            decimals,
+            decimals: decimals.toString(),
             symbol
         }
     },

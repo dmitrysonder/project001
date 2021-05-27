@@ -2,15 +2,17 @@ const args = require('minimist')(process.argv.slice(2), { string: ['token1_addre
 const { getLogger } = require('../utils/logger');
 const logger = getLogger("Watcher")
 const utils = require('../utils/utils')
+const {config} = require('../config')
+const ethers = require('ethers')
 
 
 class Watcher {
     constructor(params) {
-        if (!params || !params.type || !params.uuid || !params.exchange) return logger.error("No required params uuid and type", params)
+        if (!params || !params.type || !params.uuid || !params.exchange) logger.error("No required params uuid and type", params)
 
         this.PAIR_ABI = config.getAbi("Pair.abi.json")
         this.provider = utils.getProviderForExchange(params.exchange)
-
+        logger.debug(`Running watcher for: ${params.exchange}`)
         switch (params.type) {
             case "timestamp":
                 this.runTimestampWatcher(params)
@@ -42,11 +44,10 @@ class Watcher {
 
     runBotPriceWatcher(params) {
         const contract = new ethers.Contract(params.pair_pool, this.PAIR_ABI, this.provider)
-        logger.debug(`Listening price change events on pool contract: ${contract.address}`)
+        logger.info(`Listening price change events on pool contract: ${contract.address}`)
 
 
         contract.on("Sync", (reserve0, reserve1) => {
-            process.send({uuid: params.uuid, msg: `Sync happened`})
             const price = (reserve1 / reserve0) * Math.pow(10, params.token0_decimals - params.token1_decimals)
             logger.debug(`Price changed: ${price.toFixed(2)} for ${params.uuid}.\nTarget price for ${params.trigger_action} ${params.trigger_target}`)
 
@@ -70,9 +71,18 @@ class Watcher {
 
     runPriceWatcher(params) {
         const contract = new ethers.Contract(params.pair_pool, this.PAIR_ABI, this.provider)
-        logger.debug(`Listening price change events on pool contract: ${contract.address}`)
+        logger.info(`Listening price change events on pool contract: ${contract.address}`)
+
 
         contract.on("Sync", (reserve0, reserve1) => {
+            process.send({
+                uuid: params.uuid,
+                data: {
+                    reserve0,
+                    reserve1
+                },
+                msg: `Price updated`
+            })
             const price = (reserve1 / reserve0) * Math.pow(10, params.token0_decimals - params.token1_decimals)
             logger.debug(`Price changed: ${price.toFixed(2)} for ${params.uuid}.\nTarget price for ${params.trigger_action} ${params.trigger_target}`)
 

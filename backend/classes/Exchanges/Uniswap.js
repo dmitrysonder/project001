@@ -20,8 +20,6 @@ module.exports = class Uniswap {
         this.ROUTER_CONTRACT = contract.connect(this.ACCOUNT)
         this.DEADLINE = +new Date() + 100000
         this.EXECUTION_GAS_LIMIT = 30000000
-
-       this.logger.info("Uniswap router is initialized")
     }
 
     newContract(address, abi, provider) {
@@ -34,19 +32,23 @@ module.exports = class Uniswap {
         return pair
     }
 
-    async execute(method, order) {
+    async execute(method, order, data) {
         this.logger.info(`Executing by method ${method}`)
         const params = {
             to: this.ACCOUNT.address,
             deadline: this.DEADLINE,
-            path: [order.token0.address, order.token1.address]
+            path: [order.pair.token0.address, order.pair.token1.address],
+        }
+
+        const overrides = {
+            gasPrice: order.execution.gasPrice,
+            gasLimit: this.EXECUTION_GAS_LIMIT
         }
         let amountOut
-        let amount 
         switch (method) {
 
             case 'swapTokensForExactTokens':
-                amountOut = await this.ROUTER_CONTRACT.getAmountIn(params.amountOut, params.reserveIn, params.reserveOut)
+                amountOut = await this.ROUTER_CONTRACT.getAmountIn(params.amountOut, data.reserve0, params.reserve1)
                 amountInMax = amountIn * params.maxSlippage / 100
                 return await utils.doTransaction(this.ROUTER_CONTRACT.swapTokensForExactTokens(
                     amountOut,
@@ -54,10 +56,7 @@ module.exports = class Uniswap {
                     params.path,
                     params.to,
                     params.deadline,
-                    {
-                        gasPrice: params.gasPrice,
-                        gasLimit: this.EXECUTION_GAS_LIMIT
-                    }
+                    overrides
                 ))
             case 'swapExactTokensForTokens':
                 amountOut = await this.ROUTER_CONTRACT.getAmountIn(params.amountOut, params.reserveIn, params.reserveOut)
@@ -68,10 +67,7 @@ module.exports = class Uniswap {
                     params.path,
                     params.to,
                     params.deadline,
-                    {
-                        gasPrice: params.gasPrice,
-                        gasLimit: this.EXECUTION_GAS_LIMIT
-                    }
+                    overrides
                 ))
             default:
                 this.logger.error(`Unexpected execution type in order ${order.uuid} : `)

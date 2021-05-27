@@ -6,6 +6,7 @@ const { fork } = require('child_process');
 const fs = require('fs')
 const path = require('path');
 const Executor = require('./Executor');
+const utils = require('../utils/utils')
 
 module.exports = class Controller {
 
@@ -34,7 +35,7 @@ module.exports = class Controller {
                 logger.info(`Received trigger for order ${data?.uuid} with message:\n${data.msg}`)
                 const watcher = this.getWatcher(data?.uuid)
                 if (!watcher) throw Error(`Can't find watcher for ${data?.uuid}`)
-                const tx = await this.executor.execute(watcher.order)
+                const tx = await this.executor.execute(watcher.order, data)
                 this.handleTrade(tx, watcher)
             });
         }
@@ -102,6 +103,7 @@ module.exports = class Controller {
             throw Error("Wrong Watcher.js path")
         }
 
+        logger.info(`Forking with params: ${execArgv}`)
         const worker = fork(pathToWatcher, execArgv, options);
         this.watchers.push({
             order,
@@ -127,7 +129,7 @@ module.exports = class Controller {
             `--trigger_action=${order.trigger_.action}`,
             `--trigger_target=${order.trigger_.target}`,
             `--pair_pool=${order.pair.pool}`,
-            `--network=${utils.getNetworkByExchange(order.exchange)}`
+            `--exchange=${order.exchange}`
         ]
         return execArgv
     }

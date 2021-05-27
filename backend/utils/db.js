@@ -9,6 +9,8 @@ const DB = new AWS.DynamoDB.DocumentClient({
 const uuid = require('uuid');
 
 const tableName = config.TABLE_NAME;
+console.log(tableName)
+console.log(config.IS_TESTNET)
 
 module.exports = {
     update: async function (props = {}) {

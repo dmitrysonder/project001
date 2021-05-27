@@ -80,7 +80,7 @@ server.get('/switch', async (request, reply) => {
 
 
 server.listen(config.PORT, "0.0.0.0", (err, address) => {
-  logger.warn(`Server is starting...`);
+  logger.info(`Server is starting...`);
   if (err) {
     console.error(err)
     process.exit(1)
