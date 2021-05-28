@@ -7,11 +7,12 @@ module.exports.constants = {
         bot: "Bot"
     },
     generalFields: {
+        exchange: {label: "Exchange", type: "dropdown", options: ["uniswap", "pancake", "sushiswap", "quickswap"]},
         token0: { type: "search", label: "Base Token Address", placeholder: "0x..."},
         token1: { type: "search", label: "Quote Token Address", placeholder: "0x..."},
         amount: {type: "text", label: "Amount (Base Token)"},
         gasPrice: {type: "number", label: "Gas Price"},
-        maxSlippage: {type: "text", label: "Max Slippage"}
+        maxSlippage: {type: "text", label: "Max Slippage"},
     },
     
     limitOrder: {

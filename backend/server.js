@@ -46,9 +46,8 @@ server.post('/new', async (request, reply) => {
 server.post('/update', async (request, reply) => {
   const uuid = request.query.uuid
   if (!uuid) reply.code(400)
-
-  const payload = await validateOrder(request.body)
-  const response = await db.updateOrder(uuid, payload)
+  console.log("Updating", request.body)
+  const response = await db.updateOrder(uuid, request.body)
   await controller.updateWatcher(uuid)
   if (response.error) reply.code(500)
   reply

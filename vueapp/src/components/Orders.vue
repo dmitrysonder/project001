@@ -33,7 +33,22 @@
                     <label v-bind:for="name">{{
                       generalFields[name]["label"]
                     }}</label>
+
+                    <select
+                      v-if="generalFields[name].type === 'dropdown'"
+                      v-bind:name="name"
+                      class="form-control"
+                    >
+                      <option
+                        v-for="option in generalFields[name].options"
+                        v-bind:key="option"
+                        v-bind:value="option"
+                      >
+                        {{ option }}
+                      </option>
+                    </select>
                     <input
+                      v-else
                       class="form-control"
                       v-bind:name="name"
                       v-bind:type="generalFields[name].type"

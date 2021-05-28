@@ -45,7 +45,7 @@ module.exports = class Uniswap {
             gasLimit: BigInt(this.EXECUTION_GAS_LIMIT)
         }
         const amount = ethers.utils.parseUnits(order.execution.amount, order.pair.token0.decimals)
-        let amountOut, amountInMax, tx
+        let amountOut, amountInMax, tx, result
         switch (method) {
 
             case 'swapTokensForExactTokens':
@@ -60,7 +60,8 @@ module.exports = class Uniswap {
                     params.deadline,
                     overrides
                 );
-                return await tx.wait(1).then(data => true)
+                result = await tx.wait(1).then(data => true).catch(err => false)
+                return result
             case 'swapExactTokensForTokens':
                 this.logger.info(`Executing by method ${method}`)
                 amountOut = await this.ROUTER_CONTRACT.getAmountOut(amount, data.reserve0, data.reserve1)
@@ -74,7 +75,8 @@ module.exports = class Uniswap {
                     params.deadline,
                     overrides
                 );
-                return await tx.wait(1).then(data => true)
+                result = await tx.wait(1).then(data => true).catch(err => false)
+                return result
             default:
                 this.logger.error(`Unexpected execution type in order ${order.uuid} : `)
                 return false
