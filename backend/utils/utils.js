@@ -5,7 +5,7 @@ module.exports = {
 
     doTransaction: async function (operation) {
         try {
-            operation()
+            return await operation()
         } catch (e) {
             return e
         }
@@ -27,7 +27,8 @@ module.exports = {
     },
 
     getProviderForExchange(exchange) {
-        return getDefaultProvider(...config.getProvider(this.getNetworkByExchange(exchange)))
+        const provider = config.getProvider(this.getNetworkByExchange(exchange))
+        return getDefaultProvider(...provider)
     },
 
     recognizeToken: async function (address, exchange) {

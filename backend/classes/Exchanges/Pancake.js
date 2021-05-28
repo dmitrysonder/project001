@@ -10,8 +10,7 @@ module.exports = class Pancake extends Uniswap {
         this.PROVIDER = utils.getProviderForExchange('pancake')
         this.ROUTER_ADDRESS = addresses.PANCAKE_ROUTER
         this.FACTORY_ADDRESS = addresses.PANCAKE_FACTORY
-        const contract = this.newContract(this.ROUTER_ADDRESS, this.ROUTER_ABI, this.PROVIDER)
-        this.ROUTER_CONTRACT = contract.connect(this.ACCOUNT)
+        this.ROUTER_CONTRACT = this.newContract(this.ROUTER_ADDRESS, this.ROUTER_ABI, this.PROVIDER)
         this.logger.info("Pancake router is initialized")
     }
 }

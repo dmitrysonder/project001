@@ -19,6 +19,11 @@
   },
   "homepage": "https://github.com/dmitrysonder/project001#readme",
   "dependencies": {
+    "@ethersproject/address": "^5.2.0",
+    "@ethersproject/contracts": "^5.2.0",
+    "@ethersproject/providers": "^5.2.0",
+    "@ethersproject/solidity": "^5.2.0",
+    "@uniswap/sdk": "^3.0.3",
     "aws-sdk": "^2.901.0",
     "axios": "^0.21.1",
     "ethers": "^5.1.4",

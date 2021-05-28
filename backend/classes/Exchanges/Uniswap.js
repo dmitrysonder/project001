@@ -18,12 +18,13 @@ module.exports = class Uniswap {
         this.ACCOUNT = new ethers.Wallet.fromMnemonic(config.MNEMONIC) // TODO: replace with secrets manager
         const contract = this.newContract(this.ROUTER_ADDRESS, this.ROUTER_ABI, this.PROVIDER)
         this.ROUTER_CONTRACT = contract.connect(this.ACCOUNT)
-        this.DEADLINE = +new Date() + 100000
-        this.EXECUTION_GAS_LIMIT = 30000000
+        this.DEADLINE = Math.floor(Date.now() / 1000) + 60 * 20
+        this.EXECUTION_GAS_LIMIT = 4000000
     }
 
     newContract(address, abi, provider) {
-        return new ethers.Contract(address, abi, provider)
+        const contract = new ethers.Contract(address, abi, this.ACCOUNT.connect(provider))
+        return contract
     }
 
     async recognizePool(token0, token1) {
@@ -33,42 +34,47 @@ module.exports = class Uniswap {
     }
 
     async execute(method, order, data) {
-        this.logger.info(`Executing by method ${method}`)
         const params = {
             to: this.ACCOUNT.address,
             deadline: this.DEADLINE,
-            path: [order.pair.token0.address, order.pair.token1.address],
+            path: [order.pair.token0.address,order.pair.token1.address],
         }
 
         const overrides = {
-            gasPrice: order.execution.gasPrice,
-            gasLimit: this.EXECUTION_GAS_LIMIT
+            gasPrice: ethers.utils.parseUnits(order.execution.gasPrice, 'gwei'),
+            gasLimit: BigInt(this.EXECUTION_GAS_LIMIT)
         }
-        let amountOut
+        const amount = ethers.utils.parseUnits(order.execution.amount, order.pair.token0.decimals)
+        let amountOut, amountInMax, tx
         switch (method) {
 
             case 'swapTokensForExactTokens':
-                amountOut = await this.ROUTER_CONTRACT.getAmountIn(params.amountOut, data.reserve0, params.reserve1)
+                this.logger.info(`Executing by method ${method}`)
+                amountOut = await this.ROUTER_CONTRACT.getAmountIn(amount, data.reserve0, data.reserve1)
                 amountInMax = amountIn * params.maxSlippage / 100
-                return await utils.doTransaction(this.ROUTER_CONTRACT.swapTokensForExactTokens(
-                    amountOut,
-                    amountInMax,
+                tx = await this.ROUTER_CONTRACT.swapExactTokensForTokens(
+                    amount,
+                    amountOutMin,
                     params.path,
                     params.to,
                     params.deadline,
                     overrides
-                ))
+                );
+                return await tx.wait(1).then(data => true)
             case 'swapExactTokensForTokens':
-                amountOut = await this.ROUTER_CONTRACT.getAmountIn(params.amountOut, params.reserveIn, params.reserveOut)
-                amountInMax = amountIn * params.maxSlippage / 100
-                return await utils.doTransaction(this.ROUTER_CONTRACT.swapTokensForExactTokens(
-                    amountOut,
-                    amountInMax,
+                this.logger.info(`Executing by method ${method}`)
+                amountOut = await this.ROUTER_CONTRACT.getAmountOut(amount, data.reserve0, data.reserve1)
+                const slippage = order.execution.maxSlippage * 100
+                const amountOutMin = amountOut.mul(10000 - slippage).div(10000)
+                tx = await this.ROUTER_CONTRACT.swapExactTokensForTokens(
+                    amount,
+                    amountOutMin,
                     params.path,
                     params.to,
                     params.deadline,
                     overrides
-                ))
+                );
+                return await tx.wait(1).then(data => true)
             default:
                 this.logger.error(`Unexpected execution type in order ${order.uuid} : `)
                 return false

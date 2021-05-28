@@ -54,7 +54,7 @@ class Watcher {
             if (price <= params.trigger_priceToBuy) {
                 process.send({
                     uuid: params.uuid,
-                    data: price,
+                    data: {reserve0, reserve1, price},
                     msg: `Price for ${params.pair_name} is ${price} and it's below target ${params.trigger_priceToBuy}`
                 })
             }
@@ -62,7 +62,7 @@ class Watcher {
             if (price >= params.trigger_priceToSell) {
                 process.send({
                     uuid: params.uuid,
-                    data: price,
+                    data: {reserve0, reserve1, price},
                     msg: `Price for ${params.pair_name} is ${price} and it's above target ${params.trigger_priceToSell}`
                 })
             }
@@ -75,28 +75,20 @@ class Watcher {
 
 
         contract.on("Sync", (reserve0, reserve1) => {
-            process.send({
-                uuid: params.uuid,
-                data: {
-                    reserve0,
-                    reserve1
-                },
-                msg: `Price updated`
-            })
             const price = (reserve1 / reserve0) * Math.pow(10, params.token0_decimals - params.token1_decimals)
             logger.debug(`Price changed: ${price.toFixed(2)} for ${params.uuid}.\nTarget price for ${params.trigger_action} ${params.trigger_target}`)
 
             if (price <= params.trigger_target && params.trigger_action === 'buy') {
                 process.send({
                     uuid: params.uuid,
-                    data: price,
+                    data: {reserve0, reserve1, price},
                     msg: `Price for ${params.pair_name} is ${price} and it's below target ${params.trigger_target}`
                 })
 
             } else if (price >= params.trigger_target && params.trigger_action === 'sell') {
                 process.send({
                     uuid: params.uuid,
-                    data: price,
+                    data: {reserve0, reserve1, price},
                     msg: `Price for ${params.pair_name} is ${price} and it's above target ${params.trigger_target}`
                 })
             }

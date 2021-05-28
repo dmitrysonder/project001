@@ -35,7 +35,7 @@ module.exports = class Controller {
                 logger.info(`Received trigger for order ${data?.uuid} with message:\n${data.msg}`)
                 const watcher = this.getWatcher(data?.uuid)
                 if (!watcher) throw Error(`Can't find watcher for ${data?.uuid}`)
-                const tx = await this.executor.execute(watcher.order, data)
+                const tx = await this.executor.execute(watcher.order, data.data)
                 this.handleTrade(tx, watcher)
             });
         }
@@ -52,7 +52,7 @@ module.exports = class Controller {
         } else {
             await this.killProcesses(watcher.worker.pid)
             await db.updateOrder(watcher.order.uuid, {
-                status_: 'paused',
+                status_: 'active',
                 reason: "transaction failed"
             })
         }
@@ -80,7 +80,6 @@ module.exports = class Controller {
                 },
                 exchange: bot.exchange
             })
-            console.log(response)
             this.createWatcher(response["Items"][0])
         }
     }
@@ -129,7 +128,8 @@ module.exports = class Controller {
             `--trigger_action=${order.trigger_.action}`,
             `--trigger_target=${order.trigger_.target}`,
             `--pair_pool=${order.pair.pool}`,
-            `--exchange=${order.exchange}`
+            `--exchange=${order.exchange}`,
+            `--pair_name=${order.pair.token0.symbol}-${order.pair.token1.symbol}`
         ]
         return execArgv
     }
