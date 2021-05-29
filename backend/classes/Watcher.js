@@ -3,7 +3,8 @@ const { getLogger } = require('../utils/logger');
 const logger = getLogger("Watcher")
 const utils = require('../utils/utils')
 const {config} = require('../config')
-const ethers = require('ethers')
+const ethers = require('ethers');
+const db = require('../utils/db');
 
 
 class Watcher {
@@ -46,10 +47,11 @@ class Watcher {
         const contract = new ethers.Contract(params.pair_pool, this.PAIR_ABI, this.provider)
         logger.info(`Listening price change events on pool contract: ${contract.address}`)
 
-
-        contract.on("Sync", (reserve0, reserve1) => {
+        let counter = 0
+        contract.on("Sync", async (reserve0, reserve1) => {
             const price = (reserve1 / reserve0) * Math.pow(10, params.token0_decimals - params.token1_decimals)
             logger.debug(`Price changed: ${price.toFixed(2)} for ${params.uuid}.\nTarget price for ${params.trigger_action} ${params.trigger_target}`)
+            counter ++
 
             if (price <= params.trigger_priceToBuy) {
                 process.send({
@@ -57,6 +59,7 @@ class Watcher {
                     data: {reserve0, reserve1, price},
                     msg: `Price for ${params.pair_name} is ${price} and it's below target ${params.trigger_priceToBuy}`
                 })
+                contract.removeAllListeners()
             }
             
             if (price >= params.trigger_priceToSell) {
@@ -65,6 +68,14 @@ class Watcher {
                     data: {reserve0, reserve1, price},
                     msg: `Price for ${params.pair_name} is ${price} and it's above target ${params.trigger_priceToSell}`
                 })
+                contract.removeAllListeners()
+            }
+
+            if (counter > 10) {
+                await db.updateOrder(params.uuid, {
+                    currentPrice: price
+                })
+                counter = 0
             }
         });
     }
@@ -73,17 +84,18 @@ class Watcher {
         const contract = new ethers.Contract(params.pair_pool, this.PAIR_ABI, this.provider)
         logger.info(`Listening price change events on pool contract: ${contract.address}`)
 
-
-        contract.on("Sync", (reserve0, reserve1) => {
+        let counter = 0
+        contract.on("Sync", async (reserve0, reserve1) => {
             const price = (reserve1 / reserve0) * Math.pow(10, params.token0_decimals - params.token1_decimals)
             logger.debug(`Price changed: ${price.toFixed(2)} for ${params.uuid}.\nTarget price for ${params.trigger_action} ${params.trigger_target}`)
-
+            counter ++ 
             if (price <= params.trigger_target && params.trigger_action === 'buy') {
                 process.send({
                     uuid: params.uuid,
                     data: {reserve0, reserve1, price},
                     msg: `Price for ${params.pair_name} is ${price} and it's below target ${params.trigger_target}`
                 })
+                contract.removeAllListeners()
 
             } else if (price >= params.trigger_target && params.trigger_action === 'sell') {
                 process.send({
@@ -91,6 +103,14 @@ class Watcher {
                     data: {reserve0, reserve1, price},
                     msg: `Price for ${params.pair_name} is ${price} and it's above target ${params.trigger_target}`
                 })
+                contract.removeAllListeners()
+            }
+
+            if (counter > 5) {
+                await db.updateOrder(params.uuid, {
+                    currentPrice: price.toFixed(2)
+                })
+                counter = 0
             }
         });
     }

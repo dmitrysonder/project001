@@ -3,6 +3,7 @@ const { config } = require('../../config')
 const utils = require("../../utils/utils")
 const { addresses } = require('../../addresses')
 const { getLogger } = require('../../utils/logger');
+  
 
 module.exports = class Uniswap {
 
@@ -15,15 +16,19 @@ module.exports = class Uniswap {
         this.ROUTER_ABI = config.getAbi("Router.abi.json")
         this.PAIR_ABI = config.getAbi("Pair.abi.json")
         this.FACTORY_ABI = config.getAbi("Factory.abi.json")
-        this.ACCOUNT = new ethers.Wallet.fromMnemonic(config.MNEMONIC) // TODO: replace with secrets manager
-        const contract = this.newContract(this.ROUTER_ADDRESS, this.ROUTER_ABI, this.PROVIDER)
-        this.ROUTER_CONTRACT = contract.connect(this.ACCOUNT)
+        this.ROUTER_CONTRACT = this.newContract(this.ROUTER_ADDRESS, this.ROUTER_ABI, this.PROVIDER)
         this.DEADLINE = Math.floor(Date.now() / 1000) + 60 * 20
         this.EXECUTION_GAS_LIMIT = 4000000
     }
 
+
+    setupAccount(account) {
+        this.ACCOUNT = account
+        this.ROUTER_CONTRACT = this.ROUTER_CONTRACT.connect(account)
+    }
+
     newContract(address, abi, provider) {
-        const contract = new ethers.Contract(address, abi, this.ACCOUNT.connect(provider))
+        const contract = new ethers.Contract(address, abi, provider)
         return contract
     }
 

@@ -18,7 +18,7 @@ module.exports = class Controller {
 
     async init() {
         this.executor = new Executor()
-        
+        await this.executor.init()
         await this.killProcesses()
         const orders = await db.getOrders("active")
         logger.info(`Loading watchers for ${orders.length} active orders from the database`)
@@ -130,7 +130,7 @@ module.exports = class Controller {
 
     generateArgv(order) {
         const execArgv = [
-            `--uuid=${order.uuid}`,
+            `--uuid=${order.uuid_}`,
             `--type=${order.type_}`,
             `--token0_decimals=${order.pair.token0.decimals}`,
             `--token1_decimals=${order.pair.token1.decimals}`,

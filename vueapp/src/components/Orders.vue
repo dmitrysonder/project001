@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <div class="create" style="max-width: 950px">
+    <div class="create" style="max-width: 1300px">
       <h4>Create Order</h4>
 
       <div class="box">
@@ -109,20 +109,22 @@
       <table class="table">
         <thead>
           <tr>
+            <th scope="col">Exchange</th>
             <th scope="col">Pair</th>
             <th scope="col">Status</th>
             <th scope="col">Buy/Sell</th>
             <th scope="col">Amount</th>
             <th scope="col">Trigger</th>
             <th scope="col">Current</th>
-            <th scope="col"></th>
+            <th scope="col" style="width: 22%"></th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="order in orders" v-bind:key="order.uuid_">
+            <td>{{ order.exchange }}</td>
             <th scope="row">
               <a
-                v-bind:href="'https://etherscan.io/address/' + order.pair.pool"
+                target="_blank" v-bind:href="getLink(order.exchange) + 'address/' + order.pair.pool"
               >
                 {{ `${order.pair.token0.symbol}-${order.pair.token1.symbol}` }}
               </a>
@@ -135,7 +137,9 @@
                 `${order.trigger_.action} when ${order.type_} hit ${order.trigger_.target}`
               }}
             </td>
-            <td><b>2845.32</b></td>
+            <td>
+              <b>{{ order.currentPrice }}</b>
+            </td>
             <td>
               <button
                 v-on:click="onEditOrder(order)"
@@ -188,7 +192,7 @@ export default {
       orders: null,
       generalFields: constants.generalFields,
       types: constants.types,
-      fields: {}
+      fields: {},
     };
   },
   created: function () {
@@ -198,14 +202,14 @@ export default {
     });
   },
   mounted() {
-    this.fields = constants.limitOrder
+    this.fields = constants.limitOrder;
   },
   methods: {
     resumeOrder(uuid) {
       axios({
         method: "POST",
         url: `${config.rest}/update`,
-        params: {uuid}, 
+        params: { uuid },
         data: {
           status_: "active",
         },
@@ -215,13 +219,14 @@ export default {
       });
     },
     onEditOrder(order) {
-      console.log(order)
+      
+      console.log(order);
     },
     pauseOrder(uuid) {
       axios({
         method: "POST",
         url: `${config.rest}/update`,
-        params: {uuid}, 
+        params: { uuid },
         data: {
           status_: "paused",
         },
@@ -234,23 +239,27 @@ export default {
       axios({
         method: "POST",
         url: `${config.rest}/delete`,
-        params: {uuid}
+        params: { uuid },
       }).then(() => {
         const index = this.orders.findIndex((order) => order.uuid_ === uuid);
-        this.orders.splice(index,1)
+        this.orders.splice(index, 1);
       });
     },
     createOrder(event) {
-      event.preventDefault()
-      const data = {}
-      document.querySelectorAll("input").forEach(el => data[el.name] = el.value)
-      document.querySelectorAll("select").forEach(el => data[el.name] = el.value)
+      event.preventDefault();
+      const data = {};
+      document
+        .querySelectorAll("input")
+        .forEach((el) => (data[el.name] = el.value));
+      document
+        .querySelectorAll("select")
+        .forEach((el) => (data[el.name] = el.value));
       axios({
         method: "POST",
         url: `${config.rest}/new`,
-        data
+        data,
       }).then((response) => {
-        console.log(response)
+        console.log(response);
       });
     },
     onTypeChange(event) {
@@ -271,8 +280,20 @@ export default {
           this.fields = constants.bot;
           break;
       }
-    }
-  }
+    },
+    getLink(exchange) {
+      switch (exchange) {
+        case "uniswap":
+          return 'https://etherscan.io/'
+        case "pancake":
+          return 'https://bscscan.com/'
+        case "sushiswap":
+          return 'https://etherscan.io/'
+        case "quickswap":
+          return 'https://explorer-mainnet.maticvigil.com/'
+      }
+    },
+  },
 };
 </script>
 

@@ -1,7 +1,7 @@
 const AWS = require('aws-sdk');
 const {config} = require (`../config`);
 const { getLogger } = require('./logger')
-const logger = getLogger("server")
+const logger = getLogger("db")
 const DB = new AWS.DynamoDB.DocumentClient({
     region: config.AWS_REGION,
     apiVersion: '2012-08-10'
@@ -14,6 +14,7 @@ console.log(config.IS_TESTNET)
 
 module.exports = {
     update: async function (props = {}) {
+        logger.info("updating db")
         const { Key, data } = props
         const expressionValues = {}
         Object.entries(data).forEach(([column, value]) => expressionValues[`:${column}`] = value)
