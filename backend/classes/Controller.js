@@ -86,29 +86,38 @@ module.exports = class Controller {
 
     async updateWatcher(uuid) {
         const watcher = this.getWatcher(uuid)
-        this.removeWatcher(watcher)
+        if (watcher) {
+            this.removeWatcher(watcher)
+        }
         const order = await db.getOrder(uuid)
         this.createWatcher(order)
     }
 
     createWatcher(order) {
-        const execArgv = this.generateArgv(order)
-        const options = {
-            stdio: ['pipe', 'pipe', 'pipe', 'ipc']
-        };
-        const pathToWatcher = path.resolve(__dirname, "Watcher.js")
-        if (!fs.existsSync(pathToWatcher)) {
-            logger.error(`Path to watcher is not found`, pathToWatcher)
-            throw Error("Wrong Watcher.js path")
-        }
+        if (order.status_ === 'active') {
+            const execArgv = this.generateArgv(order)
+            const options = {
+                stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+            };
+            const pathToWatcher = path.resolve(__dirname, "Watcher.js")
+            if (!fs.existsSync(pathToWatcher)) {
+                logger.error(`Path to watcher is not found`, pathToWatcher)
+                throw Error("Wrong Watcher.js path")
+            }
+    
+            logger.info(`Forking with params: ${execArgv}`)
+            const worker = fork(pathToWatcher, execArgv, options);
 
-        logger.info(`Forking with params: ${execArgv}`)
-        const worker = fork(pathToWatcher, execArgv, options);
-        this.watchers.push({
-            order,
-            worker
-        })
-        return true
+            // quick fix after DynamoDB restricted to use uuid as sort key
+            const modifiedOrder = {...order}
+            delete modifiedOrder.uuid_
+            modifiedOrder["uuid"] = order.uuid_
+            this.watchers.push({
+                order: modifiedOrder,
+                worker
+            })
+            return true
+        }
     }
 
     async removeWatcher(watcher) {
@@ -136,7 +145,6 @@ module.exports = class Controller {
 
     getWatcher(uuid) {
         const watcher = this.watchers.find(obj => obj.order.uuid === uuid)
-        if (!watcher) logger.error(`Watcher ${uuid} is not found`)
         return watcher
     }
 

@@ -119,7 +119,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="order in orders" v-bind:key="order.uuid">
+          <tr v-for="order in orders" v-bind:key="order.uuid_">
             <th scope="row">
               <a
                 v-bind:href="'https://etherscan.io/address/' + order.pair.pool"
@@ -146,14 +146,14 @@
               </button>
               <button
                 v-if="order.status_ === 'paused'"
-                v-on:click="resumeOrder(order.uuid)"
+                v-on:click="resumeOrder(order.uuid_)"
                 type="button"
                 class="btn btn-outline-warning btn-sm"
               >
                 Resume
               </button>
               <button
-                v-on:click="pauseOrder(order.uuid)"
+                v-on:click="pauseOrder(order.uuid_)"
                 v-else
                 type="button"
                 class="btn btn-outline-success btn-sm"
@@ -162,7 +162,7 @@
               </button>
 
               <button
-                v-on:click="deleteOrder(order.uuid)"
+                v-on:click="deleteOrder(order.uuid_)"
                 type="button"
                 class="btn btn-outline-danger btn-sm"
               >
@@ -210,7 +210,7 @@ export default {
           status_: "active",
         },
       }).then(() => {
-        const index = this.orders.findIndex((order) => order.uuid === uuid);
+        const index = this.orders.findIndex((order) => order.uuid_ === uuid);
         this.orders[index].status_ = "active";
       });
     },
@@ -226,7 +226,7 @@ export default {
           status_: "paused",
         },
       }).then(() => {
-        const index = this.orders.findIndex((order) => order.uuid === uuid);
+        const index = this.orders.findIndex((order) => order.uuid_ === uuid);
         this.orders[index].status_ = "paused";
       });
     },
@@ -236,7 +236,7 @@ export default {
         url: `${config.rest}/delete`,
         params: {uuid}
       }).then(() => {
-        const index = this.orders.findIndex((order) => order.uuid === uuid);
+        const index = this.orders.findIndex((order) => order.uuid_ === uuid);
         this.orders.splice(index,1)
       });
     },

@@ -97,7 +97,7 @@ module.exports = {
 
     getOrder: async function(uuid) {
         const data = await this.query({
-            KeyConditionExpression: "pk = :pk and uuid = :uuid",
+            KeyConditionExpression: "pk = :pk and uuid_ = :uuid",
             ExpressionAttributeValues: {
                 ":pk": 'order',
                 ":uuid": uuid
@@ -114,21 +114,21 @@ module.exports = {
         return await this.delete({
             Key: {
                 "pk": "order",
-                "uuid": uuid
+                "uuid_": uuid
             }
         })
     },
 
     updateOrder: async function(uuid, data) {
         return await this.update({
-            Key: { "pk": "order", "uuid": uuid },
+            Key: { "pk": "order", "uuid_": uuid },
             data
         })
     },
 
     createOrder: async function(data) {
         const response = await this.update({
-          Key: { "pk": "order", "uuid": uuid.v4() },
+          Key: { "pk": "order", "uuid_": uuid.v4() },
           data
         })
         return response
@@ -136,7 +136,7 @@ module.exports = {
     
     createBot: async function(data) {
         const response = await this.update({
-            Key: { "pk": "bot", "uuid": uuid.v4() },
+            Key: { "pk": "bot", "uuid_": uuid.v4() },
             data
         })
         return response
@@ -144,7 +144,7 @@ module.exports = {
 
     getBot: async function(uuid) {
         const data = await this.query({
-            KeyConditionExpression: "pk = :pk and uuid = :uuid",
+            KeyConditionExpression: "pk = :pk and uuid_ = :uuid",
             ExpressionAttributeValues: {
                 ":pk": 'bot',
                 ":uuid": uuid
