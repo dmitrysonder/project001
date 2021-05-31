@@ -35,7 +35,7 @@ server.post('/new', async (request, reply) => {
     response = await db.createOrder(payload)
   }
   if (response.error) reply.code(500)
-  const watcherCreated = controller.createWatcher(response.Items[0])
+  const watcherCreated = controller.createWatcher(response?.Attributes)
 
   if (!watcherCreated) reply.code(500)
   reply
@@ -58,10 +58,9 @@ server.post('/update', async (request, reply) => {
 server.post('/delete', async (request, reply) => {
   const uuid = request.query.uuid
   if (!uuid) reply.code(400)
-
+  await controller.removeWatcher(uuid)
   const dbUpdated = await db.deleteOrder(uuid)
   if (!dbUpdated) reply.code(500)
-  await controller.removeWatcher(uuid)
   reply
     .code(200)
     .send(dbUpdated)
@@ -92,9 +91,12 @@ async function validateOrder(body) {
   // if (emptyValues.length > 0) {
   //   return false
   // }
-  const token0 = await utils.recognizeToken(body.token0)
-  const token1 = await utils.recognizeToken(body.token1)
-  const pool = await utils.recognizePool(token0,token1)
+  const token0 = await utils.recognizeToken(body.token0, body.exchange)
+  const token1 = await utils.recognizeToken(body.token1, body.exchange)
+  const executor = controller.getExecutorByExchange(body.exchange)
+  console.log(executor.FACTORY_ADDRESS)
+  const pool = await executor.recognizePool(token0.address, token1.address)
+  console.log(pool)
   const trigger_ = utils.recognizeTrigger(body)
   return {
     execution: {

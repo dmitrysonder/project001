@@ -1,4 +1,4 @@
-const { Contract, getDefaultProvider, ethers } = require('ethers')
+const { Contract, getDefaultProvider, utils } = require('ethers')
 const { config } = require('../config')
 
 module.exports = {
@@ -31,10 +31,12 @@ module.exports = {
         return getDefaultProvider(...provider)
     },
 
-    recognizeToken: async function (address, exchange) {
+
+    recognizeToken: async function (address_, exchange) {
+        const address = utils.getAddress(address_.trim())
         const token = new Contract(address, config.getAbi('ERC20.abi.json'), this.getProviderForExchange(exchange))
-        const decimals = await token.decimals()
         const symbol = await token.symbol()
+        const decimals = await token.decimals()
         return {
             address,
             decimals: decimals.toString(),

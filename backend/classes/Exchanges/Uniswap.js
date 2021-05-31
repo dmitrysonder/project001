@@ -33,7 +33,7 @@ module.exports = class Uniswap {
     }
 
     async recognizePool(token0, token1) {
-        const factory = new Contract(this.FACTORY_ADDRESS, this.FACTORY_ABI, this.PROVIDER)
+        const factory = new ethers.Contract(this.FACTORY_ADDRESS, this.FACTORY_ABI, this.PROVIDER)
         const pair = await factory.getPair(token0, token1)
         return pair
     }

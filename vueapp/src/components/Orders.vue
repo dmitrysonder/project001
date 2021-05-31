@@ -9,7 +9,7 @@
             <div class="form-group">
               <label for="exampleFormControlSelect1">Type</label>
               <select
-                name="orderType"
+                id="orderType"
                 @change="onTypeChange($event)"
                 class="form-control"
               >
@@ -36,8 +36,9 @@
 
                     <select
                       v-if="generalFields[name].type === 'dropdown'"
-                      v-bind:name="name"
+                      v-bind:id="name"
                       class="form-control"
+                      name="general"
                     >
                       <option
                         v-for="option in generalFields[name].options"
@@ -50,7 +51,8 @@
                     <input
                       v-else
                       class="form-control"
-                      v-bind:name="name"
+                      name="general"
+                      v-bind:id="name"
                       v-bind:type="generalFields[name].type"
                       v-bind:placeholder="generalFields[name].placeholder"
                     />
@@ -72,7 +74,8 @@
                     >
                     <select
                       v-if="fields[name].type === 'dropdown'"
-                      v-bind:name="name"
+                      v-bind:id="name"
+                      name="additional"
                       class="form-control"
                     >
                       <option
@@ -86,7 +89,8 @@
                     <input
                       v-else
                       class="form-control"
-                      v-bind:name="name"
+                      name="additional"
+                      v-bind:id="name"
                       v-bind:type="fields[name].type"
                     />
                   </div>
@@ -124,7 +128,10 @@
             <td>{{ order.exchange }}</td>
             <th scope="row">
               <a
-                target="_blank" v-bind:href="getLink(order.exchange) + 'address/' + order.pair.pool"
+                target="_blank"
+                v-bind:href="
+                  getLink(order.exchange) + 'address/' + order.pair.pool
+                "
               >
                 {{ `${order.pair.token0.symbol}-${order.pair.token1.symbol}` }}
               </a>
@@ -219,8 +226,37 @@ export default {
       });
     },
     onEditOrder(order) {
-      
-      console.log(order);
+      document.querySelector("#token0").value = order.pair.token0.address;
+      document.querySelector("#token1").value = order.pair.token1.address;
+      document.querySelector("#exchange").value = order.exchange;
+      document.querySelector("#amount").value = order.execution.amount;
+      document.querySelector("#gasPrice").value = order.execution.gasPrice;
+      document.querySelector("#maxSlippage").value = order.execution.maxSlippage;
+      const type = document.querySelector("#orderType");
+      type.value = order.type_;
+
+      switch (order.type_) {
+        case "price":
+          document.querySelector("#trade").value = order.trigger_.action
+          document.querySelector("#price").value = order.trigger_.target
+          break;
+        case "timestamp":
+          document.querySelector("#trade").value = order.trigger_.action
+          document.querySelector("#date").value = order.trigger_.date
+          document.querySelector("#time").value = order.trigger_.time
+          break;
+        case "bot":
+          document.querySelector("#priceToBuy").value = order.trigger_.priceToBuy
+          document.querySelector("#priceToSell").value = order.trigger_.priceToSell
+          break;
+        case "frontRunning":
+          document.querySelector("#volume0").value = order.trigger_.volume0
+          document.querySelector("#volume1").value = order.trigger_.volume1
+          break;
+        case "listing":
+          document.querySelector("#trade").value = order.trigger_.action
+          break;
+      }
     },
     pauseOrder(uuid) {
       axios({
@@ -250,16 +286,18 @@ export default {
       const data = {};
       document
         .querySelectorAll("input")
-        .forEach((el) => (data[el.name] = el.value));
+        .forEach((el) => (data[el.id] = el.value));
       document
         .querySelectorAll("select")
-        .forEach((el) => (data[el.name] = el.value));
+        .forEach((el) => (data[el.id] = el.value));
       axios({
         method: "POST",
         url: `${config.rest}/new`,
         data,
       }).then((response) => {
-        console.log(response);
+        if (response?.data?.Attributes) {
+          this.orders.push(response.data.Attributes)
+        }
       });
     },
     onTypeChange(event) {
@@ -284,13 +322,13 @@ export default {
     getLink(exchange) {
       switch (exchange) {
         case "uniswap":
-          return 'https://etherscan.io/'
+          return "https://etherscan.io/";
         case "pancake":
-          return 'https://bscscan.com/'
+          return "https://bscscan.com/";
         case "sushiswap":
-          return 'https://etherscan.io/'
+          return "https://etherscan.io/";
         case "quickswap":
-          return 'https://explorer-mainnet.maticvigil.com/'
+          return "https://explorer-mainnet.maticvigil.com/";
       }
     },
   },

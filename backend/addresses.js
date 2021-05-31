@@ -13,7 +13,7 @@ exports.addresses = {
         : "0x05ff2b0db69458a0750badebc4f9e13add608c7f",
     PANCAKE_FACTORY: IS_TESTNET
         ? "0x10ed43c718714eb63d5aa57b78b54704e256024e"
-        : "0x05ff2b0db69458a0750badebc4f9e13add608c7f",
+        : "0xBCfCcbde45cE874adCB698cC183deBcF17952812",
     QUICKSWAP_ROUTER: IS_TESTNET
         ? "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
         : "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",

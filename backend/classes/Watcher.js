@@ -50,7 +50,6 @@ class Watcher {
         let counter = 0
         contract.on("Sync", async (reserve0, reserve1) => {
             const price = (reserve1 / reserve0) * Math.pow(10, params.token0_decimals - params.token1_decimals)
-            logger.debug(`Price changed: ${price.toFixed(2)} for ${params.uuid}.\nTarget price for ${params.trigger_action} ${params.trigger_target}`)
             counter ++
 
             if (price <= params.trigger_priceToBuy) {
@@ -87,7 +86,6 @@ class Watcher {
         let counter = 0
         contract.on("Sync", async (reserve0, reserve1) => {
             const price = (reserve1 / reserve0) * Math.pow(10, params.token0_decimals - params.token1_decimals)
-            logger.debug(`Price changed: ${price.toFixed(2)} for ${params.uuid}.\nTarget price for ${params.trigger_action} ${params.trigger_target}`)
             counter ++ 
             if (price <= params.trigger_target && params.trigger_action === 'buy') {
                 process.send({

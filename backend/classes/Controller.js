@@ -93,7 +93,21 @@ module.exports = class Controller {
         this.createWatcher(order)
     }
 
+    getExecutorByExchange(exchange) {
+        switch (exchange) {
+            case 'uniswap':
+                return this.executor.uniswap
+            case 'pancake':
+                return this.executor.pancake
+            case 'sushiswap':
+                return this.executor.sushiswap
+            case 'quickswap':
+                return this.executor.quickswap
+        }
+    }
+
     createWatcher(order) {
+        if (!order) throw new Error("Cant create order. Wrong params: " + JSON.stringify(order))
         if (order.status_ === 'active') {
             const execArgv = this.generateArgv(order)
             const options = {
@@ -120,11 +134,15 @@ module.exports = class Controller {
         }
     }
 
-    async removeWatcher(watcher) {
+    async removeWatcher(watcherOrUuid) {
+        let watcher
+        if (typeof watcherOrUuid === 'string') {
+            watcher = this.getWatcher(watcherOrUuid)
+        }
         await this.killProcesses(watcher.worker.pid)
         const index = this.watchers.findIndex(obj => obj.order.uuid === watcher.order.uuid)
         if (index > -1) {
-            this.watchers.slice(index, 1)
+            this.watchers.splice(index, 1)
         }
     }
 
