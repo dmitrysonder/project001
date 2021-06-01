@@ -1,4 +1,3 @@
-const { Contract, getDefaultProvider, utils } = require('ethers')
 const { config } = require('../config')
 
 module.exports = {

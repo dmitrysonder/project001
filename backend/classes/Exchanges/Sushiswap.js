@@ -4,10 +4,10 @@ const utils = require("../../utils/utils")
 const { addresses } = require('../../addresses')
 
 module.exports = class Sushiswap extends Uniswap {
-    constructor() {
+    constructor(provider) {
         super();
         this.logger = getLogger("Sushiswap")
-        this.PROVIDER = utils.getProviderForExchange('sushiswap')
+        this.PROVIDER = provider
         this.ROUTER_ADDRESS = addresses.SUSHI_ROUTER
         this.FACTORY_ADDRESS = addresses.SUSHI_FACTORY
         const contract = this.newContract(this.ROUTER_ADDRESS, this.ROUTER_ABI, this.PROVIDER)

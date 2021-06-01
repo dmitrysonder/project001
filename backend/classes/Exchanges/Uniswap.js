@@ -7,9 +7,9 @@ const { getLogger } = require('../../utils/logger');
 
 module.exports = class Uniswap {
 
-    constructor() {
+    constructor(provider) {
         this.logger = getLogger("Uniswap")
-        this.PROVIDER = utils.getProviderForExchange('uniswap')
+        this.PROVIDER = provider
         this.ROUTER_ADDRESS = addresses.UNISWAP_ROUTER
         this.FACTORY_ADDRESS = addresses.UNISWAP_FACTORY
 

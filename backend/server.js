@@ -35,9 +35,7 @@ server.post('/new', async (request, reply) => {
     response = await db.createOrder(payload)
   }
   if (response.error) reply.code(500)
-  const watcherCreated = controller.createWatcher(response?.Attributes)
-
-  if (!watcherCreated) reply.code(500)
+  await controller.onDbUpdate(uuid)
   reply
     .code(201)
     .send(response)
@@ -48,8 +46,8 @@ server.post('/update', async (request, reply) => {
   if (!uuid) reply.code(400)
   console.log(`Updating ${uuid}`, request.body)
   const response = await db.updateOrder(uuid, request.body)
-  await controller.updateWatcher(uuid)
   if (response.error) reply.code(500)
+  await controller.onDbUpdate(uuid)
   reply
     .code(200)
     .send(response)
@@ -58,9 +56,9 @@ server.post('/update', async (request, reply) => {
 server.post('/delete', async (request, reply) => {
   const uuid = request.query.uuid
   if (!uuid) reply.code(400)
-  await controller.removeWatcher(uuid)
   const dbUpdated = await db.deleteOrder(uuid)
   if (!dbUpdated) reply.code(500)
+  await controller.onDbUpdate(uuid)
   reply
     .code(200)
     .send(dbUpdated)

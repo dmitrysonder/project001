@@ -6,7 +6,6 @@ const { fork } = require('child_process');
 const fs = require('fs')
 const path = require('path');
 const Executor = require('./Executor');
-const utils = require('../utils/utils')
 
 module.exports = class Controller {
 
@@ -20,13 +19,33 @@ module.exports = class Controller {
         this.executor = new Executor()
         await this.executor.init()
         await this.killProcesses()
-        const orders = await db.getOrders("active")
-        logger.info(`Loading watchers for ${orders.length} active orders from the database`)
-        if (orders) {
-            orders.forEach(order => this.createWatcher(order))
-        }
-        logger.info(`\n${this.watchers.map(watcher => `PID: ${watcher.worker.pid}, UUID: ${watcher.order.uuid}`).join("\n")}`)
+        this.runWatchers()
         this.listen()
+    }
+
+    runWatchers() {
+        const orders = await db.getOrders("active")
+        const networks = this.getNeededNetworks(orders)
+        for (const network of networks) {
+            logger.info(`Initializing watcher for ${networks} network`)
+            const args = [`--network=${network}`]
+            const options = {
+                stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+            };
+            const pathToWatcher = path.resolve(__dirname, "NewWatcher.js")
+            if (!fs.existsSync(pathToWatcher)) {
+                logger.error(`Path to watcher is not found`, pathToWatcher)
+                throw Error("Wrong Watcher.js path")
+            }
+    
+            logger.info(`Forking with params: ${args}`)
+            const worker = fork(pathToWatcher, args, options);
+            this.watchers.push({
+                worker,
+                network
+            })
+        }
+        logger.info(`\n${this.watchers.map(watcher => `PID: ${watcher.worker.pid}, NETWORK: ${watcher.network}`).join("\n")}`)
     }
 
     listen() {
@@ -84,13 +103,11 @@ module.exports = class Controller {
         }
     }
 
-    async updateWatcher(uuid) {
-        const watcher = this.getWatcher(uuid)
-        if (watcher) {
-            this.removeWatcher(watcher)
-        }
+    async onDbUpdate(uuid) {
         const order = await db.getOrder(uuid)
-        this.createWatcher(order)
+        const network = utils.getNetworkByExchange(order.exchange)
+        const watcher = this.watchers.find(watcher => watcher.network === network)
+        watcher.send('update')
     }
 
     getExecutorByExchange(exchange) {
@@ -106,64 +123,12 @@ module.exports = class Controller {
         }
     }
 
-    createWatcher(order) {
-        if (!order) throw new Error("Cant create order. Wrong params: " + JSON.stringify(order))
-        if (order.status_ === 'active') {
-            const execArgv = this.generateArgv(order)
-            const options = {
-                stdio: ['pipe', 'pipe', 'pipe', 'ipc']
-            };
-            const pathToWatcher = path.resolve(__dirname, "Watcher.js")
-            if (!fs.existsSync(pathToWatcher)) {
-                logger.error(`Path to watcher is not found`, pathToWatcher)
-                throw Error("Wrong Watcher.js path")
-            }
-    
-            logger.info(`Forking with params: ${execArgv}`)
-            const worker = fork(pathToWatcher, execArgv, options);
-
-            // quick fix after DynamoDB restricted to use uuid as sort key
-            const modifiedOrder = {...order}
-            delete modifiedOrder.uuid_
-            modifiedOrder["uuid"] = order.uuid_
-            this.watchers.push({
-                order: modifiedOrder,
-                worker
-            })
-            return true
-        }
-    }
-
-    async removeWatcher(watcherOrUuid) {
-        let watcher
-        if (typeof watcherOrUuid === 'string') {
-            watcher = this.getWatcher(watcherOrUuid)
-        }
+    async removeWatcher(watcher) {
         await this.killProcesses(watcher.worker.pid)
         const index = this.watchers.findIndex(obj => obj.order.uuid === watcher.order.uuid)
         if (index > -1) {
             this.watchers.splice(index, 1)
         }
-    }
-
-    generateArgv(order) {
-        const execArgv = [
-            `--uuid=${order.uuid_}`,
-            `--type=${order.type_}`,
-            `--token0_decimals=${order.pair.token0.decimals}`,
-            `--token1_decimals=${order.pair.token1.decimals}`,
-            `--trigger_action=${order.trigger_.action}`,
-            `--trigger_target=${order.trigger_.target}`,
-            `--pair_pool=${order.pair.pool}`,
-            `--exchange=${order.exchange}`,
-            `--pair_name=${order.pair.token0.symbol}-${order.pair.token1.symbol}`
-        ]
-        return execArgv
-    }
-
-    getWatcher(uuid) {
-        const watcher = this.watchers.find(obj => obj.order.uuid === uuid)
-        return watcher
     }
 
     async killProcesses(pid) {
@@ -193,6 +158,18 @@ module.exports = class Controller {
                 }
             });
         });
+    }
+
+    getNeededNetworks(orders) {
+        const exchanges = new Set(orders.map(order => order.exchange))
+        const networks = []
+        for (const exchange of exchanges) {
+            const network = utils.getNetworkByExchange(exchange)
+            if (!networks.includes(network)) {
+                networks.push(network)
+            }
+        }
+        return networks
     }
 }
 
