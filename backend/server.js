@@ -21,6 +21,7 @@ server.get('/orders', async (request, reply) => {
 })
 
 server.post('/new', async (request, reply) => {
+  controller.send()
   if (!request.body) reply.code(400)
     .send("Wrong request. Use POST with body")
   const payload = await validateOrder(request.body)
@@ -75,12 +76,13 @@ server.get('/switch', async (request, reply) => {
 
 
 
-server.listen(config.PORT, "0.0.0.0", (err, address) => {
+server.listen(config.PORT, "0.0.0.0", async (err, address) => {
   logger.info(`Server is starting...`);
   if (err) {
     console.error(err)
     process.exit(1)
   }
+  await controller.init()
   logger.info(`Server listening at ${address}`);
 })
 
@@ -92,9 +94,7 @@ async function validateOrder(body) {
   const token0 = await utils.recognizeToken(body.token0, body.exchange)
   const token1 = await utils.recognizeToken(body.token1, body.exchange)
   const executor = controller.getExecutorByExchange(body.exchange)
-  console.log(executor.FACTORY_ADDRESS)
   const pool = await executor.recognizePool(token0.address, token1.address)
-  console.log(pool)
   const trigger_ = utils.recognizeTrigger(body)
   return {
     execution: {

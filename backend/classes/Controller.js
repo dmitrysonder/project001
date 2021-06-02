@@ -5,56 +5,57 @@ const logger = getLogger("Controller")
 const { fork } = require('child_process');
 const fs = require('fs')
 const path = require('path');
+const utils = require("../utils/utils")
 const Executor = require('./Executor');
 
 module.exports = class Controller {
 
-    watchers = []
-
     constructor() {
-        this.init()
+        this.watchers = []
     }
 
     async init() {
         this.executor = new Executor()
         await this.executor.init()
         await this.killProcesses()
-        this.runWatchers()
+        await this.runWatchers()
         this.listen()
     }
 
-    runWatchers() {
+
+
+    async runWatchers() {
         const orders = await db.getOrders("active")
         const networks = this.getNeededNetworks(orders)
         for (const network of networks) {
-            logger.info(`Initializing watcher for ${networks} network`)
+
             const args = [`--network=${network}`]
             const options = {
                 stdio: ['pipe', 'pipe', 'pipe', 'ipc']
             };
-            const pathToWatcher = path.resolve(__dirname, "NewWatcher.js")
+            const pathToWatcher = path.resolve(__dirname, "Watcher.js")
             if (!fs.existsSync(pathToWatcher)) {
                 logger.error(`Path to watcher is not found`, pathToWatcher)
                 throw Error("Wrong Watcher.js path")
             }
-    
-            logger.info(`Forking with params: ${args}`)
+            logger.info(`Initializing watcher for ${network} network with params: ${args.join(" ")}`)
             const worker = fork(pathToWatcher, args, options);
             this.watchers.push({
                 worker,
                 network
             })
+            //logger.info(`${network} watcher is initialized`)
         }
+
         logger.info(`\n${this.watchers.map(watcher => `PID: ${watcher.worker.pid}, NETWORK: ${watcher.network}`).join("\n")}`)
     }
 
     listen() {
         for (const watcher of this.watchers) {
             watcher.worker.on('message', async data => {
-                logger.info(`Received trigger for order ${data?.uuid} with message:\n${data.msg}`)
-                const watcher = this.getWatcher(data?.uuid)
-                if (!watcher) throw Error(`Can't find watcher for ${data?.uuid}`)
-                const tx = await this.executor.execute(watcher.order, data.data)
+                logger.info(`Received trigger for order ${data?.uuid} with message:\n${data?.msg}`)
+                if (!data?.order) logger.error(`Didn't receive order in data ${JSON.stringify(data)}`)
+                const tx = await this.executor.execute(data?.order, data?.data)
                 this.handleTrade(tx, watcher)
             });
         }
@@ -103,11 +104,15 @@ module.exports = class Controller {
         }
     }
 
+
     async onDbUpdate(uuid) {
         const order = await db.getOrder(uuid)
         const network = utils.getNetworkByExchange(order.exchange)
         const watcher = this.watchers.find(watcher => watcher.network === network)
-        watcher.send('update')
+        watcher.worker.send({
+            uuid,
+            msg: "update"
+        })
     }
 
     getExecutorByExchange(exchange) {
@@ -140,11 +145,9 @@ module.exports = class Controller {
             }
             const watchers = resultList.filter(process => {
                 const pidMatch = pid ? process.pid === pid : true
-                return process?.arguments[0] === "Watcher.js" && pidMatch
+                return process?.arguments[0].includes("Watcher.js") && pidMatch
             })
-            if (watchers.length === 0) return true
-
-            logger.info("Killing watchers...")
+            logger.info(`Killing ${watchers.length} active watchers processes..`)
             watchers.forEach(function (process) {
                 if (process) {
                     ps.kill(process.pid, function (err) {

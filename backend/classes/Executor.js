@@ -33,7 +33,7 @@ module.exports = class Executor {
     }
 
     async execute(order, data) {
-        let method = order.trigger_.action === "buy" || data.trade === "buy"
+        let method = order.trigger_.action === "buy" || data?.trade === "buy"
             ? "swapTokensForExactTokens"
             : "swapExactTokensForTokens"
 
