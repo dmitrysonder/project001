@@ -35,7 +35,7 @@ server.post('/new', async (request, reply) => {
     response = await db.createOrder(payload)
   }
   if (response.error) reply.code(500)
-  await controller.onDbUpdate(response?.Attributes?.uuid_)
+  await controller.onDbUpdate(response?.Attributes?.exchange)
   reply
     .code(201)
     .send(response)
@@ -46,7 +46,7 @@ server.post('/update', async (request, reply) => {
   if (!uuid) reply.code(400)
   const response = await db.updateOrder(uuid, request.body)
   if (response.error) reply.code(500)
-  await controller.onDbUpdate(uuid)
+  await controller.onDbUpdate(response?.Attributes?.exchange)
   reply
     .code(200)
     .send(response)
@@ -55,9 +55,10 @@ server.post('/update', async (request, reply) => {
 server.post('/delete', async (request, reply) => {
   const uuid = request.query.uuid
   if (!uuid) reply.code(400)
+  const order = request.body.order
   const dbUpdated = await db.deleteOrder(uuid)
   if (!dbUpdated) reply.code(500)
-  await controller.onDbUpdate(uuid)
+  await controller.onDbUpdate(order.exchange)
   reply
     .code(200)
     .send(dbUpdated)

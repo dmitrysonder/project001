@@ -25,7 +25,7 @@ class Watcher {
     listen() {
         process.on('message', (data) => {
             if (data.msg = "update") {
-                logger.debug("updating all listeners")
+                logger.debug("Updating all listeners")
                 this.updateListeners()
             }
         })

@@ -2,7 +2,6 @@
   <div class="container">
     <div class="create" style="max-width: 1300px">
       <h4>Create Order</h4>
-
       <div class="box">
         <div id="createOrder">
           <div class="container">
@@ -272,10 +271,12 @@ export default {
       });
     },
     deleteOrder(uuid) {
+      const order = this.orders.find(val => val.uuid_ === uuid)
       axios({
         method: "POST",
         url: `${config.rest}/delete`,
         params: { uuid },
+        data: {order}
       }).then(() => {
         const index = this.orders.findIndex((order) => order.uuid_ === uuid);
         this.orders.splice(index, 1);

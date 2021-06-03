@@ -62,7 +62,7 @@ module.exports = class Controller {
     }
 
     async handleTrade(tx, watcher) {
-        if (tx.ok) {
+        if (tx) {
             await this.removeWatcher(watcher)
             await db.updateOrder(watcher.order.uuid, {
                 status_: 'completed',
@@ -71,7 +71,7 @@ module.exports = class Controller {
             if (watcher.order.botId) await this.createNewBotTrade(watcher)
         } else {
             await this.killProcesses(watcher.worker.pid)
-            await db.updateOrder(watcher.order.uuid, {
+            await db.updateOrder(watcher.order.uuid_, {
                 status_: 'active',
                 reason: "transaction failed"
             })
@@ -105,14 +105,15 @@ module.exports = class Controller {
     }
 
     // Recognize what worker should be reloaded, by uuid of order
-    async onDbUpdate(uuid) {
-        const order = await db.getOrder(uuid)
-        const network = utils.getNetworkByExchange(order.exchange)
+    async onDbUpdate(exchange) {
+        logger.info('Updating watchers')
+        const network = utils.getNetworkByExchange(exchange)
         const watcher = this.watchers.find(watcher => watcher.network === network)
-        watcher.worker.send({
-            uuid,
-            msg: "update"
-        })
+        if (watcher) {
+            watcher.worker.send({
+                msg: "update"
+            })
+        }
     }
 
     getExecutorByExchange(exchange) {

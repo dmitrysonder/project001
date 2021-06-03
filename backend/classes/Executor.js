@@ -30,8 +30,6 @@ module.exports = class Executor {
     async init() {
         const accountSeed = await sm.getSecretValue({ SecretId: config.BOT_MNEMONIC_KEY }).promise().then(data => data["SecretString"])
         const seedString = JSON.parse(accountSeed)["mnemonic"]
-        
-
         this.uniswap.setupAccount(seedString)
         this.sushiswap.setupAccount(seedString)
         this.quickswap.setupAccount(seedString)
