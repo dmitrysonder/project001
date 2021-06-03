@@ -6,7 +6,7 @@ const Pancake = require("./Exchanges/Pancake");
 const { getLogger } = require('../utils/logger');
 const { config } = require('../config')
 const logger = getLogger("Executor")
-const {Wallet} = require('ethers')
+const { Wallet, getDefaultProvider, utils, Contract, ethers } = require('ethers')
 const AWS = require('aws-sdk')
 const sm = new AWS.SecretsManager({
     region: config.AWS_REGION
@@ -15,21 +15,27 @@ const sm = new AWS.SecretsManager({
 module.exports = class Executor {
 
     constructor() {
-        this.uniswap = new Uniswap();
-        this.sushiswap = new Sushiswap();
-        this.quickswap = new Quickswap();
-        this.pancake = new Pancake();
+        const ethProvider = getDefaultProvider(...config.getProvider('eth'))
+        const bscProvider = getDefaultProvider(...config.getProvider('bsc'))
+        const polygonProvider = getDefaultProvider(...config.getProvider('polygon'))
+        this.ethProvider = ethProvider;
+        this.bscProvider = bscProvider;
+        this.polygonProvider = polygonProvider;
+        this.uniswap = new Uniswap(ethProvider);
+        this.sushiswap = new Sushiswap(ethProvider);
+        this.quickswap = new Quickswap(polygonProvider);
+        this.pancake = new Pancake(bscProvider);
     }
 
     async init() {
         const accountSeed = await sm.getSecretValue({ SecretId: config.BOT_MNEMONIC_KEY }).promise().then(data => data["SecretString"])
         const seedString = JSON.parse(accountSeed)["mnemonic"]
-        const account = new Wallet.fromMnemonic(seedString)
+        
 
-        this.uniswap.setupAccount(account)
-        this.sushiswap.setupAccount(account)
-        this.quickswap.setupAccount(account)
-        this.pancake.setupAccount(account)
+        this.uniswap.setupAccount(seedString)
+        this.sushiswap.setupAccount(seedString)
+        this.quickswap.setupAccount(seedString)
+        this.pancake.setupAccount(seedString)
     }
 
     async execute(order, data) {
@@ -51,4 +57,29 @@ module.exports = class Executor {
                 return false
         }
     }
+
+    getProviderForExchange(exchange) {
+        switch (exchange) {
+            case 'uniswap':
+                return this.ethProvider
+            case 'pancake':
+                return this.bscProvider
+            case 'sushiswap':
+                return this.ethProvider
+            case 'quickswap':
+                return this.polygonProvider
+        }
+    }
+
+    // async recognizeToken(address_, exchange) {
+    //     const address = utils.getAddress(address_)
+    //     const token = new Contract(address, config.getAbi('ERC20.abi.json'), this.getProviderForExchange(exchange))
+    //     const symbol = await token.symbol()
+    //     const decimals = await token.decimals()
+    //     return {
+    //         address,
+    //         decimals: decimals.toString(),
+    //         symbol
+    //     }
+    // }
 }

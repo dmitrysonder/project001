@@ -53,7 +53,7 @@ module.exports = class Controller {
     listen() {
         for (const watcher of this.watchers) {
             watcher.worker.on('message', async data => {
-                logger.info(`Received trigger for order ${data?.uuid} with message:\n${data?.msg}`)
+                logger.info(`Received trigger for order ${data?.uuid_} with message:\n${data?.msg}`)
                 if (!data?.order) logger.error(`Didn't receive order in data ${JSON.stringify(data)}`)
                 const tx = await this.executor.execute(data?.order, data?.data)
                 this.handleTrade(tx, watcher)
@@ -104,7 +104,7 @@ module.exports = class Controller {
         }
     }
 
-
+    // Recognize what worker should be reloaded, by uuid of order
     async onDbUpdate(uuid) {
         const order = await db.getOrder(uuid)
         const network = utils.getNetworkByExchange(order.exchange)
@@ -145,7 +145,7 @@ module.exports = class Controller {
             }
             const watchers = resultList.filter(process => {
                 const pidMatch = pid ? process.pid === pid : true
-                return process?.arguments[0].includes("Watcher.js") && pidMatch
+                return process?.arguments[0]?.includes("Watcher.js") && pidMatch
             })
             logger.info(`Killing ${watchers.length} active watchers processes..`)
             watchers.forEach(function (process) {

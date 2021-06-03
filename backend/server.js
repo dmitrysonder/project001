@@ -21,7 +21,6 @@ server.get('/orders', async (request, reply) => {
 })
 
 server.post('/new', async (request, reply) => {
-  controller.send()
   if (!request.body) reply.code(400)
     .send("Wrong request. Use POST with body")
   const payload = await validateOrder(request.body)
@@ -36,7 +35,7 @@ server.post('/new', async (request, reply) => {
     response = await db.createOrder(payload)
   }
   if (response.error) reply.code(500)
-  await controller.onDbUpdate(uuid)
+  await controller.onDbUpdate(response?.Attributes?.uuid_)
   reply
     .code(201)
     .send(response)
@@ -45,7 +44,6 @@ server.post('/new', async (request, reply) => {
 server.post('/update', async (request, reply) => {
   const uuid = request.query.uuid
   if (!uuid) reply.code(400)
-  console.log(`Updating ${uuid}`, request.body)
   const response = await db.updateOrder(uuid, request.body)
   if (response.error) reply.code(500)
   await controller.onDbUpdate(uuid)
@@ -91,15 +89,16 @@ async function validateOrder(body) {
   // if (emptyValues.length > 0) {
   //   return false
   // }
-  const token0 = await utils.recognizeToken(body.token0, body.exchange)
-  const token1 = await utils.recognizeToken(body.token1, body.exchange)
+
   const executor = controller.getExecutorByExchange(body.exchange)
+  
+  const token0 = await executor.recognizeToken(body.token0, body.exchange)
+  const token1 = await executor.recognizeToken(body.token1, body.exchange)
   const pool = await executor.recognizePool(token0.address, token1.address)
   const trigger_ = utils.recognizeTrigger(body)
   return {
     execution: {
       amount: body.amount,
-      deadline: config.DEFAULT_DEADLINE,
       gasPrice: body.gasPrice,
       maxSlippage: body.maxSlippage
     },

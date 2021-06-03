@@ -14,7 +14,6 @@ console.log(config.IS_TESTNET)
 
 module.exports = {
     update: async function (props = {}) {
-        logger.info("updating db")
         const { Key, data } = props
         const expressionValues = {}
         Object.entries(data).forEach(([column, value]) => expressionValues[`:${column}`] = value)

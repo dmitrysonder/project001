@@ -57,13 +57,8 @@ class Watcher {
     }
 
     runPriceListener(order) {
-        // const eventFilter = {
-        //     address: order.pair.pool,
-        //     topics: [
-        //         "0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1"
-        //     ]
-        // }
         const contract = new ethers.Contract(order.pair.pool, this.PAIR_ABI, this.provider)
+        let counter = 0
         contract.on('Sync', async (reserve0, reserve1) => {
             try {
                 const token0 = order.pair.token0
@@ -72,21 +67,29 @@ class Watcher {
                 const target = order.trigger_.target
                 const action = order.trigger_.action
                 const price = (reserve1 / reserve0) * Math.pow(10, token0.decimals - token1.decimals)
-                logger.debug(price)
-                process.send({order})
+
                 if (price <= target && action === 'buy') {
                     process.send({
                         order: order,
                         data: { reserve0, reserve1, price },
                         msg: `Price for ${pairName} is ${price} and it's below target ${target}`
                     })
+                    contract.removeAllListeners()
                 } else if (price >= target && action === 'sell') {
                     process.send({
                         order: order,
                         data: { reserve0, reserve1, price },
                         msg: `Price for ${pairName} is ${price} and it's above target ${target}`
                     })
+                    contract.removeAllListeners()
                 }
+                
+                if (counter > config.PRICE_UPDATE_RATE) {
+                    logger.debug(`${pairName} price ${price} is updated in DB`)
+                    await db.updateOrder(order.uuid_, {currentPrice: utils.toFixed(price)})
+                    counter = 0
+                }
+                counter ++
             } catch (e) {
                 logger.error(JSON.stringify(e))
             }

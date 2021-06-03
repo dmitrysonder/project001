@@ -31,8 +31,7 @@ module.exports = {
     },
 
 
-    recognizeToken: async function (address_, exchange) {
-        const address = utils.getAddress(address_.trim())
+    recognizeToken: async function (address, exchange) {
         const token = new Contract(address, config.getAbi('ERC20.abi.json'), this.getProviderForExchange(exchange))
         const symbol = await token.symbol()
         const decimals = await token.decimals()
@@ -70,5 +69,23 @@ module.exports = {
                     priceToSell: body.priceToSell
                 }
         }
-    }
+    },
+
+    toFixed: function(x) {
+        if (Math.abs(x) < 1.0) {
+            let e = parseInt(x.toString().split('e-')[1]);
+            if (e) {
+                x *= Math.pow(10, e - 1);
+                x = '0.' + (new Array(e)).join('0') + x.toString().substring(2);
+            }
+        } else {
+            let e = parseInt(x.toString().split('+')[1]);
+            if (e > 20) {
+                e -= 20;
+                x /= Math.pow(10, e);
+                x += (new Array(e + 1)).join('0');
+            }
+        }
+        return x;
+    },
 }

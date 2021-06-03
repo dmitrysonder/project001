@@ -1,6 +1,5 @@
 const ethers = require('ethers')
 const { config } = require('../../config')
-const utils = require("../../utils/utils")
 const { addresses } = require('../../addresses')
 const { getLogger } = require('../../utils/logger');
   
@@ -22,7 +21,8 @@ module.exports = class Uniswap {
     }
 
 
-    setupAccount(account) {
+    setupAccount(seedString) {
+        const account = new ethers.Wallet.fromMnemonic(seedString).connect(this.PROVIDER)
         this.ACCOUNT = account
         this.ROUTER_CONTRACT = this.ROUTER_CONTRACT.connect(account)
     }
@@ -36,6 +36,18 @@ module.exports = class Uniswap {
         const factory = new ethers.Contract(this.FACTORY_ADDRESS, this.FACTORY_ABI, this.PROVIDER)
         const pair = await factory.getPair(token0, token1)
         return pair
+    }
+
+    async recognizeToken(address_) {
+        const address = ethers.utils.getAddress(address_)
+        const token = new ethers.Contract(address, config.getAbi('ERC20.abi.json'), this.PROVIDER)
+        const symbol = await token.symbol()
+        const decimals = await token.decimals()
+        return {
+            address,
+            decimals: decimals.toString(),
+            symbol
+        }
     }
 
     async execute(method, order, data) {
