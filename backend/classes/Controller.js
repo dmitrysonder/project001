@@ -138,30 +138,37 @@ module.exports = class Controller {
     }
 
     async killProcesses(pid) {
-        ps.lookup({
-            command: 'node',
-        }, function (err, resultList) {
-            if (err) {
-                throw new Error(err);
-            }
-            const watchers = resultList.filter(process => {
-                const pidMatch = pid ? process.pid === pid : true
-                return process?.arguments[0]?.includes("Watcher.js") && pidMatch
+        if (pid) {
+            const worker = this.watchers.find(watcher => watcher.worker.pid === pid)
+            if (!worker) logger.error(`Cant find worker with PID: ${pid}`)
+            ps.kill(pid, (err) => {
+                logger.error(err)
             })
-            logger.info(`Killing ${watchers.length} active watchers processes..`)
-            watchers.forEach(function (process) {
-                if (process) {
-                    ps.kill(process.pid, function (err) {
-                        if (err) {
-                            throw new Error(err);
-                        }
-                        else {
-                            logger.info('Process %s has been killed!', pid);
-                        }
-                    });
+        } else {
+            ps.lookup({
+                command: 'node',
+            }, function (err, resultList) {
+                if (err) {
+                    throw new Error(err);
                 }
+                const watchers = resultList.filter(process => {
+                    return process?.arguments[0]?.includes("Watcher.js")
+                })
+                logger.info(`Killing ${watchers.length} active watchers processes..`)
+                watchers.forEach(function (process) {
+                    if (process) {
+                        ps.kill(process.pid, function (err) {
+                            if (err) {
+                                throw new Error(err);
+                            }
+                            else {
+                                logger.info('Process %s has been killed!', pid);
+                            }
+                        });
+                    }
+                });
             });
-        });
+        }
     }
 
     getNeededNetworks(orders) {
