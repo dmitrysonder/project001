@@ -1,3 +1,3 @@
 module.exports.config = {
-    rest: "http://0.0.0.0:3000"
+    rest: "http://localhost:3000"
 }
