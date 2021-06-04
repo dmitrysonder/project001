@@ -6,6 +6,7 @@ const { fork } = require('child_process');
 const fs = require('fs')
 const path = require('path');
 const utils = require("../utils/utils")
+const { config } = require('../config')
 const Executor = require('./Executor');
 
 module.exports = class Controller {
@@ -21,8 +22,6 @@ module.exports = class Controller {
         await this.runWatchers()
         this.listen()
     }
-
-
 
     async runWatchers() {
         const orders = await db.getOrders("active")
@@ -53,30 +52,46 @@ module.exports = class Controller {
     listen() {
         for (const watcher of this.watchers) {
             watcher.worker.on('message', async data => {
-                logger.info(`Received trigger for order ${data?.uuid_} with message:\n${data?.msg}`)
+                logger.info(`Received trigger for order ${data?.order.uuid_} with message:\n${data?.msg}`)
                 if (!data?.order) logger.error(`Didn't receive order in data ${JSON.stringify(data)}`)
-                const tx = await this.executor.execute(data?.order, data?.data)
-                this.handleTrade(tx, watcher)
+                const tx = await this.executor.execute(data.order, data.data)
+                this.handleTrade(tx, data.order)
             });
         }
     }
 
-    async handleTrade(tx, watcher) {
-        if (tx) {
-            await this.removeWatcher(watcher)
-            await db.updateOrder(watcher.order.uuid, {
+    approve(order) {
+        this.executor.approve(order)
+    }
+
+    async handleTrade(tx, order) {
+        if (tx.status === 'confirmed') {
+            logger.info(`Swap confirmed: ${tx.receipt.transactionHash}`)
+            await db.updateOrder(order.uuid_, {
                 status_: 'completed',
-                reason: "transaction executed"
+                receipt: tx.receipt
             })
-            if (watcher.order.botId) await this.createNewBotTrade(watcher)
+            if (order.botId) await this.createNewBotTrade(watcher)
         } else {
-            await this.killProcesses(watcher.worker.pid)
-            await db.updateOrder(watcher.order.uuid_, {
-                status_: 'active',
-                reason: "transaction failed"
+            logger.warn(`Swap failed with the code: ${tx.receipt.code}`)
+            await db.updateOrder(order.uuid_, {
+                status_: 'failed',
+                receipt: tx.receipt
             })
+            this.onDbUpdate(order.exchange)
         }
     }
+
+    async createOrder(order) {
+        this.approve(order)
+        logger.debug("Creating new order")
+        const response = await db.createOrder(order)
+        if (response.err) return false
+
+        this.onDbUpdate(response?.Attributes?.exchange)
+        return response
+    }
+
 
     async createNewBotTrade(watcher) {
         const bot = await db.getBot(watcher.order.botId)
@@ -131,7 +146,7 @@ module.exports = class Controller {
 
     async removeWatcher(watcher) {
         await this.killProcesses(watcher.worker.pid)
-        const index = this.watchers.findIndex(obj => obj.order.uuid === watcher.order.uuid)
+        const index = this.watchers.findIndex(obj => obj.order.uuid_ === watcher.order.uuid_)
         if (index > -1) {
             this.watchers.splice(index, 1)
         }
@@ -172,6 +187,7 @@ module.exports = class Controller {
     }
 
     getNeededNetworks(orders) {
+        if (!orders) return []
         const exchanges = new Set(orders.map(order => order.exchange))
         const networks = []
         for (const exchange of exchanges) {

@@ -6,7 +6,7 @@ const Pancake = require("./Exchanges/Pancake");
 const { getLogger } = require('../utils/logger');
 const { config } = require('../config')
 const logger = getLogger("Executor")
-const { Wallet, getDefaultProvider, utils, Contract, ethers } = require('ethers')
+const { Wallet, getDefaultProvider, Contract } = require('ethers')
 const AWS = require('aws-sdk')
 const sm = new AWS.SecretsManager({
     region: config.AWS_REGION
@@ -56,6 +56,10 @@ module.exports = class Executor {
         }
     }
 
+    approve(order) {
+        return this.getExecutorForExchange(order.exchange).approve(order)
+    }
+
     getProviderForExchange(exchange) {
         switch (exchange) {
             case 'uniswap':
@@ -66,6 +70,23 @@ module.exports = class Executor {
                 return this.ethProvider
             case 'quickswap':
                 return this.polygonProvider
+            default:
+                return this.bscProvider
+        }
+    }
+
+    getExecutorForExchange(exchange) {
+        switch (exchange) {
+            case 'uniswap':
+                return this.uniswap
+            case 'pancake':
+                return this.pancake
+            case 'sushiswap':
+                return this.sushiswap
+            case 'quickswap':
+                return this.quickswap
+            default:
+                return this.pancake
         }
     }
 

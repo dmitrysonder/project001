@@ -343,6 +343,10 @@ export default {
         }
         loading.style.display = "none"
         createButton.style.display = "block"
+      }).catch(e => {
+        console.log(e)
+        loading.style.display = "none"
+        createButton.style.display = "block"
       })
     },
     onTypeChange(event) {

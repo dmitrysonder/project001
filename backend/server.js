@@ -28,14 +28,12 @@ server.post('/new', async (request, reply) => {
     .send("Fill all inputs")
   let response;
   if (payload.type_ === 'bot') {
-    logger.debug("Creating new bot with")
-    response = await db.createBot(payload)
+    response = await controller.createBot(payload)
   } else {
-    logger.debug("Creating new order")
-    response = await db.createOrder(payload)
+    response = await controller.createOrder(payload)
   }
-  if (response.error) reply.code(500)
-  await controller.onDbUpdate(response?.Attributes?.exchange)
+  if (!response) reply.code(500)
+  logger.debug("Created")
   reply
     .code(201)
     .send(response)

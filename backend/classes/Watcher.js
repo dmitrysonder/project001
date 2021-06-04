@@ -69,19 +69,22 @@ class Watcher {
                 const price = (reserve1 / reserve0) * Math.pow(10, token0.decimals - token1.decimals)
 
                 if (price <= target && action === 'buy') {
+                    contract.removeAllListeners()
+                    db.updateOrder(order.uuid_, {status_: "triggered"})
                     process.send({
                         order: order,
                         data: { reserve0, reserve1, price },
                         msg: `Price for ${pairName} is ${price} and it's below target ${target}`
                     })
-                    contract.removeAllListeners()
+                    
                 } else if (price >= target && action === 'sell') {
+                    contract.removeAllListeners()
+                    db.updateOrder(order.uuid_, {status_: "triggered"})
                     process.send({
                         order: order,
                         data: { reserve0, reserve1, price },
                         msg: `Price for ${pairName} is ${price} and it's above target ${target}`
                     })
-                    contract.removeAllListeners()
                 }
                 
                 if (counter > config.PRICE_UPDATE_RATE) {
