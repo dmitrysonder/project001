@@ -18,7 +18,7 @@ exports.config = {
     PANCAKE_ROUTER: process.env.PANCAKE_ROUTER || "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
     BOT_MNEMONIC_KEY: "botMnemonic",
     FRONTRUN_MNEMONIC_KEY: "frontMnemonic",
-    PRICE_UPDATE_RATE: 10,
+    PRICE_UPDATE_RATE: 3,
 
     getProvider: function (network) {
         switch (network) {

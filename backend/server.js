@@ -33,7 +33,7 @@ server.post('/new', async (request, reply) => {
     response = await controller.createOrder(payload)
   }
   if (!response) reply.code(500)
-  logger.debug("Created")
+  logger.debug("Order created")
   reply
     .code(201)
     .send(response)
@@ -91,8 +91,12 @@ async function validateOrder(body) {
 
   const executor = controller.getExecutorByExchange(body.exchange)
   
-  const token0 = await executor.recognizeToken(body.token0, body.exchange)
-  const token1 = await executor.recognizeToken(body.token1, body.exchange)
+  const [token0, token1] = await Promise.all([
+    executor.recognizeToken(body.token0, body.exchange),
+    executor.recognizeToken(body.token1, body.exchange)
+  ])
+  // const token0 = await executor.recognizeToken(body.token0, body.exchange)
+  // const token1 = await executor.recognizeToken(body.token1, body.exchange)
   const pool = await executor.recognizePool(token0.address, token1.address)
   const trigger_ = utils.recognizeTrigger(body)
   return {

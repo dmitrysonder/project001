@@ -23,17 +23,22 @@ module.exports = class Uniswap {
 
     async approve(order) {
         const token = order.trigger_.action === 'sell' ? order.pair.token0 : order.pair.token1
-        const contract = new ethers.Contract(token.address, config.getAbi('ERC20.abi.json'), this.PROVIDER)
+        const contract = new ethers.Contract(token.address, config.getAbi('ERC20.abi.json'), this.ACCOUNT)
         const allowance = await contract.allowance(this.ACCOUNT.address, this.ROUTER_ADDRESS)
-        const diff = ethers.utils.parseUnits(order.execution.amount, token.decimals).sub(allowance)
-        if (diff > 0) {
+        console.log(this.ACCOUNT.address)
+        console.log(this.ROUTER_ADDRESS)
+        console.log(allowance)
+        const amountBn = ethers.utils.parseUnits(order.execution.amount, token.decimals)
+        const diff = amountBn.sub(allowance)
+        // if (diff > 0) {
             const overrides = this.getTxOverrides(order)
             this.logger.info(`Approving ${diff} ${token.symbol}`)
-            const tx = contract.appove(this.ROUTER_ADDRESS, diff, overrides)
+            const tx = contract.approve(this.ROUTER_ADDRESS, allowance, overrides)
+            console.log(`Approving ended with: ${tx.code}`)
             return tx
-        } else {
-            this.logger.info(`Approve is not needed for ${token.symbol}`)
-        }
+        // } else {
+        //     this.logger.info(`Approve is not needed for ${token.symbol}. Diff: ${diff}`)
+        // }
     }
 
     setupAccount(seedString) {
@@ -93,15 +98,16 @@ module.exports = class Uniswap {
         }
     }
 
+
     async swapTokensForExactTokens(data, order) {
         const {path, to, deadline, amount} = this.getTxParams(order)
         const {reserve0, reserve1} = data
         const overrides = this.getTxOverrides(order)
         const slippage = order.execution.maxSlippage * 100
         const amountIn = await this.ROUTER_CONTRACT.getAmountIn(amount, reserve0, reserve1)
-        const amountInMax = amountIn * slippage / 100
+        const amountInMax = amountIn.mul(10000 + slippage).div(10000)
 
-        this.logger.info(`swapTokensForExactTokens ${amount} for ${amountIn}`)
+        this.logger.info(`Buying ${ethers.utils.formatEther(amount)} ${order.pair.token0.symbol} using ${ethers.utils.formatEther(amountInMax)} ${order.pair.token1.symbol}`)
 
         const tx = await this.ROUTER_CONTRACT.swapTokensForExactTokens(
             amount,
@@ -133,7 +139,7 @@ module.exports = class Uniswap {
         const slippage = order.execution.maxSlippage * 100
         const amountOutMin = amountOut.mul(10000 - slippage).div(10000)
 
-        this.logger.info(`swapExactTokensForTokens ${amount} for ${amountOutMin}`)
+        this.logger.info(`Selling ${ethers.utils.formatEther(amount)} ${order.pair.token0.symbol} for ${ethers.utils.formatEther(amountOutMin)} ${order.pair.token1.symbol}`)
 
         const tx = await this.ROUTER_CONTRACT.swapExactTokensForTokens(
             amount,

@@ -67,7 +67,6 @@ class Watcher {
                 const target = order.trigger_.target
                 const action = order.trigger_.action
                 const price = (reserve1 / reserve0) * Math.pow(10, token0.decimals - token1.decimals)
-
                 if (price <= target && action === 'buy') {
                     contract.removeAllListeners()
                     db.updateOrder(order.uuid_, {status_: "triggered"})
