@@ -1,7 +1,7 @@
 
 const Uniswap = require("./Exchanges/Uniswap");
 const Sushiswap = require("./Exchanges/Sushiswap");
-const Quickswap = require("./Exchanges/QuickSwap");
+const Quickswap = require("./Exchanges/Quickswap");
 const Pancake = require("./Exchanges/Pancake");
 const { getLogger } = require('../utils/logger');
 const { config } = require('../config')
