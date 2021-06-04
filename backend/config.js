@@ -9,7 +9,7 @@ exports.config = {
     PORT: 3000,
     AWS_REGION: process.env.AWS_REGION || 'us-east-2', // AWS Region
     INFURA_KEY: process.env.INFURA_KEY || '694aa307fb484c5bac98e4dca4aca053', // Infura API key for eth testing
-    TABLE_NAME: IS_TESTNET ? 'project01-testnet' : 'project', // DynamoDB name
+    TABLE_NAME: IS_TESTNET ? 'project01-testnet' : 'project001', // DynamoDB name
     CHUNK_SIZE: process.env.CHUNK_SIZE || 10, // max simulateonos records in database
     ADDRESS: ENV === "PROD" ? "0.0.0.0" : "127.0.0.1",
     UNISWAP_ROUTER: process.env.UNISWAP_ROUTER || "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
