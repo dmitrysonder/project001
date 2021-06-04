@@ -26,7 +26,7 @@ exports.getLogger = function (fileName) {
     transports: [
       new transports.File({ filename: './logs/error.log', level: 'error' }),
       new transports.File({ filename: './logs/combined.log', level: 'debug' }),
-      new (transports.Console)({ level: 'debug' }),
+      new (transports.Console)({ level: 'info' }),
     ],
   });
   return logger
