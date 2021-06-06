@@ -33,8 +33,8 @@ module.exports = class Uniswap {
         // if (diff > 0) {
             const overrides = this.getTxOverrides(order)
             this.logger.info(`Approving ${diff} ${token.symbol}`)
-            const tx = contract.approve(this.ROUTER_ADDRESS, allowance, overrides)
-            console.log(`Approving ended with: ${tx.code}`)
+            const tx = await contract.approve(this.ROUTER_ADDRESS, amountBn, overrides)
+            console.log(`Approving ended with: ${JSON.stringify(tx)}`)
             return tx
         // } else {
         //     this.logger.info(`Approve is not needed for ${token.symbol}. Diff: ${diff}`)
@@ -104,10 +104,10 @@ module.exports = class Uniswap {
         const {reserve0, reserve1} = data
         const overrides = this.getTxOverrides(order)
         const slippage = order.execution.maxSlippage * 100
-        const amountIn = await this.ROUTER_CONTRACT.getAmountIn(amount, reserve0, reserve1)
+        const amountIn = await this.ROUTER_CONTRACT.getAmountIn(amount, reserve1, reserve0)
         const amountInMax = amountIn.mul(10000 + slippage).div(10000)
 
-        this.logger.info(`Buying ${ethers.utils.formatEther(amount)} ${order.pair.token0.symbol} using ${ethers.utils.formatEther(amountInMax)} ${order.pair.token1.symbol}`)
+        this.logger.info(`swapTokensForExactTokens ${ethers.utils.formatUnits(amount, order.pair.token0.decimals)} ${order.pair.token0.symbol} using ${ethers.utils.formatUnits(amountInMax, order.pair.token1.decimals)} ${order.pair.token1.symbol}`)
 
         const tx = await this.ROUTER_CONTRACT.swapTokensForExactTokens(
             amount,
@@ -139,7 +139,7 @@ module.exports = class Uniswap {
         const slippage = order.execution.maxSlippage * 100
         const amountOutMin = amountOut.mul(10000 - slippage).div(10000)
 
-        this.logger.info(`Selling ${ethers.utils.formatEther(amount)} ${order.pair.token0.symbol} for ${ethers.utils.formatEther(amountOutMin)} ${order.pair.token1.symbol}`)
+        this.logger.info(`swapExactTokensForTokens ${ethers.utils.formatEther(amount)} ${order.pair.token0.symbol} for ${ethers.utils.formatEther(amountOutMin)} ${order.pair.token1.symbol}`)
 
         const tx = await this.ROUTER_CONTRACT.swapExactTokensForTokens(
             amount,

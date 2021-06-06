@@ -87,7 +87,6 @@ module.exports = class Controller {
         logger.debug("Creating new order")
         const response = await db.createOrder(order)
         if (response.err) return false
-
         this.onDbUpdate(response?.Attributes?.exchange)
         return response
     }
@@ -128,6 +127,9 @@ module.exports = class Controller {
             watcher.worker.send({
                 msg: "update"
             })
+        } else {
+            logger.warn(`Can't find watcher for network: ${network}. Initializing...`)
+            this.init()
         }
     }
 
