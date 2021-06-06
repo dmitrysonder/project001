@@ -94,50 +94,90 @@
                     />
                   </div>
                   <div>
-                  <button
-                    v-on:click="createOrder"
-                    type="submit"
-                    class="btn btn-success"
-                  >
-                    <span id="createButton">Create</span>
-                                      <svg id="loading" style="display:none" width="56" height="23" viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg" fill="darkgreen">
-    <circle cx="15" cy="15" r="15">
-        <animate attributeName="r" from="15" to="15"
-                 begin="0s" dur="0.8s"
-                 values="15;9;15" calcMode="linear"
-                 repeatCount="indefinite" />
-        <animate attributeName="fill-opacity" from="1" to="1"
-                 begin="0s" dur="0.8s"
-                 values="1;.5;1" calcMode="linear"
-                 repeatCount="indefinite" />
-    </circle>
-    <circle cx="60" cy="15" r="9" fill-opacity="0.3">
-        <animate attributeName="r" from="9" to="9"
-                 begin="0s" dur="0.8s"
-                 values="9;15;9" calcMode="linear"
-                 repeatCount="indefinite" />
-        <animate attributeName="fill-opacity" from="0.5" to="0.5"
-                 begin="0s" dur="0.8s"
-                 values=".5;1;.5" calcMode="linear"
-                 repeatCount="indefinite" />
-    </circle>
-    <circle cx="105" cy="15" r="15">
-        <animate attributeName="r" from="15" to="15"
-                 begin="0s" dur="0.8s"
-                 values="15;9;15" calcMode="linear"
-                 repeatCount="indefinite" />
-        <animate attributeName="fill-opacity" from="1" to="1"
-                 begin="0s" dur="0.8s"
-                 values="1;.5;1" calcMode="linear"
-                 repeatCount="indefinite" />
-    </circle>
-</svg>
-                  </button>
-
+                    <button
+                      v-on:click="createOrder"
+                      type="submit"
+                      class="btn btn-success"
+                    >
+                      <span id="createButton">Create</span>
+                      <svg
+                        id="loading"
+                        style="display: none"
+                        width="56"
+                        height="23"
+                        viewBox="0 0 120 30"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="darkgreen"
+                      >
+                        <circle cx="15" cy="15" r="15">
+                          <animate
+                            attributeName="r"
+                            from="15"
+                            to="15"
+                            begin="0s"
+                            dur="0.8s"
+                            values="15;9;15"
+                            calcMode="linear"
+                            repeatCount="indefinite"
+                          />
+                          <animate
+                            attributeName="fill-opacity"
+                            from="1"
+                            to="1"
+                            begin="0s"
+                            dur="0.8s"
+                            values="1;.5;1"
+                            calcMode="linear"
+                            repeatCount="indefinite"
+                          />
+                        </circle>
+                        <circle cx="60" cy="15" r="9" fill-opacity="0.3">
+                          <animate
+                            attributeName="r"
+                            from="9"
+                            to="9"
+                            begin="0s"
+                            dur="0.8s"
+                            values="9;15;9"
+                            calcMode="linear"
+                            repeatCount="indefinite"
+                          />
+                          <animate
+                            attributeName="fill-opacity"
+                            from="0.5"
+                            to="0.5"
+                            begin="0s"
+                            dur="0.8s"
+                            values=".5;1;.5"
+                            calcMode="linear"
+                            repeatCount="indefinite"
+                          />
+                        </circle>
+                        <circle cx="105" cy="15" r="15">
+                          <animate
+                            attributeName="r"
+                            from="15"
+                            to="15"
+                            begin="0s"
+                            dur="0.8s"
+                            values="15;9;15"
+                            calcMode="linear"
+                            repeatCount="indefinite"
+                          />
+                          <animate
+                            attributeName="fill-opacity"
+                            from="1"
+                            to="1"
+                            begin="0s"
+                            dur="0.8s"
+                            values="1;.5;1"
+                            calcMode="linear"
+                            repeatCount="indefinite"
+                          />
+                        </circle>
+                      </svg>
+                    </button>
                   </div>
-
-
-
                 </form>
               </div>
             </div>
@@ -241,12 +281,58 @@ export default {
   },
   created: function () {
     axios.get(`${config.rest}/orders`).then((res) => {
-      console.log(res);
       this.orders = res.data?.orders;
     });
   },
   mounted() {
     this.fields = constants.limitOrder;
+        if (!this.EventSource) {
+      const source = new EventSource(`${config.rest}/sse`)
+      console.log(this.$orders)
+      const index = this.orderIndex("9065e0c3-2c37-4aed-9955-32841ce2d7f3")
+      console.log(index)
+      source.addEventListener(
+        "message",
+        function (event) {
+          if (event.data) {
+            const {uuid, type, value} = JSON.parse(event.data)[0]
+            switch (type) {
+              case 'status':
+                this.orders[this.orderIndex(uuid)].status_ = value
+                break;
+              case 'price':
+                this.orders[this.orderIndex(uuid)].currentPrice = value
+                break;
+              default:
+                break;
+            }
+          }
+        },
+        false
+      );
+
+      source.addEventListener(
+        "open",
+        function () {
+          console.log("Connected");
+        },
+        false
+      );
+
+      source.addEventListener(
+        "error",
+        function (e) {
+          if (e.target.readyState == EventSource.CLOSED) {
+            console.log("Disconnected")
+          } else if (e.target.readyState == EventSource.CONNECTING) {
+            console.log("Connecting...")
+          }
+        },
+        false
+      );
+    } else {
+      console.log("Your browser doesn't support SSE");
+    }
   },
   methods: {
     resumeOrder(uuid) {
@@ -262,36 +348,42 @@ export default {
         this.orders[index].status_ = "active";
       });
     },
+    orderIndex(uuid) {
+      return this.orders.findIndex(order => order.uuid_ === uuid)
+    },
     onEditOrder(order) {
       document.querySelector("#token0").value = order.pair.token0.address;
       document.querySelector("#token1").value = order.pair.token1.address;
       document.querySelector("#exchange").value = order.exchange;
       document.querySelector("#amount").value = order.execution.amount;
       document.querySelector("#gasPrice").value = order.execution.gasPrice;
-      document.querySelector("#maxSlippage").value = order.execution.maxSlippage;
+      document.querySelector("#maxSlippage").value =
+        order.execution.maxSlippage;
       const type = document.querySelector("#orderType");
       type.value = order.type_;
 
       switch (order.type_) {
         case "price":
-          document.querySelector("#trade").value = order.trigger_.action
-          document.querySelector("#price").value = order.trigger_.target
+          document.querySelector("#trade").value = order.trigger_.action;
+          document.querySelector("#price").value = order.trigger_.target;
           break;
         case "timestamp":
-          document.querySelector("#trade").value = order.trigger_.action
-          document.querySelector("#date").value = order.trigger_.date
-          document.querySelector("#time").value = order.trigger_.time
+          document.querySelector("#trade").value = order.trigger_.action;
+          document.querySelector("#date").value = order.trigger_.date;
+          document.querySelector("#time").value = order.trigger_.time;
           break;
         case "bot":
-          document.querySelector("#priceToBuy").value = order.trigger_.priceToBuy
-          document.querySelector("#priceToSell").value = order.trigger_.priceToSell
+          document.querySelector("#priceToBuy").value =
+            order.trigger_.priceToBuy;
+          document.querySelector("#priceToSell").value =
+            order.trigger_.priceToSell;
           break;
         case "frontRunning":
-          document.querySelector("#volume0").value = order.trigger_.volume0
-          document.querySelector("#volume1").value = order.trigger_.volume1
+          document.querySelector("#volume0").value = order.trigger_.volume0;
+          document.querySelector("#volume1").value = order.trigger_.volume1;
           break;
         case "listing":
-          document.querySelector("#trade").value = order.trigger_.action
+          document.querySelector("#trade").value = order.trigger_.action;
           break;
       }
     },
@@ -309,12 +401,12 @@ export default {
       });
     },
     deleteOrder(uuid) {
-      const order = this.orders.find(val => val.uuid_ === uuid)
+      const order = this.orders.find((val) => val.uuid_ === uuid);
       axios({
         method: "POST",
         url: `${config.rest}/delete`,
         params: { uuid },
-        data: {order}
+        data: { order },
       }).then(() => {
         const index = this.orders.findIndex((order) => order.uuid_ === uuid);
         this.orders.splice(index, 1);
@@ -323,10 +415,10 @@ export default {
     createOrder(event) {
       event.preventDefault();
       const data = {};
-      const loading = document.querySelector("#loading")
-      const createButton = document.querySelector("#createButton")
-      createButton.style.display = "none"
-      loading.style.display = "block"
+      const loading = document.querySelector("#loading");
+      const createButton = document.querySelector("#createButton");
+      createButton.style.display = "none";
+      loading.style.display = "block";
       document
         .querySelectorAll("input")
         .forEach((el) => (data[el.id] = el.value));
@@ -337,17 +429,19 @@ export default {
         method: "POST",
         url: `${config.rest}/new`,
         data,
-      }).then((response) => {
-        if (response?.data?.Attributes) {
-          this.orders.push(response.data.Attributes)
-        }
-        loading.style.display = "none"
-        createButton.style.display = "block"
-      }).catch(e => {
-        console.log(e)
-        loading.style.display = "none"
-        createButton.style.display = "block"
       })
+        .then((response) => {
+          if (response?.data?.Attributes) {
+            this.orders.push(response.data.Attributes);
+          }
+          loading.style.display = "none";
+          createButton.style.display = "block";
+        })
+        .catch((e) => {
+          console.log(e);
+          loading.style.display = "none";
+          createButton.style.display = "block";
+        });
     },
     onTypeChange(event) {
       switch (event.target.value) {

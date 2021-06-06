@@ -5,10 +5,27 @@ const { config } = require("./config")
 const db = require("./utils/db")
 const utils = require("./utils/utils")
 const Controller = require("./classes/Controller")
+const { EventEmitter, on } = require('events')
 
 const server = fastify()
 server.register(require('fastify-cors'), {})
-const controller = new Controller()
+server.register(require('fastify-sse-v2'), {})
+const eventEmitter = new EventEmitter();
+const controller = new Controller(eventEmitter)
+
+
+server.get("/sse", function (req, res) {
+  res.sse(
+    (async function* () {
+      for await (const event of on(eventEmitter, "ServerEvent")) {
+        yield {
+          type: event.name,
+          data: JSON.stringify(event),
+        };
+      }
+    })()
+  );
+});
 
 server.get('/orders', async (request, reply) => {
   const orders = await db.getOrders()
@@ -68,7 +85,7 @@ server.get('/switch', async (request, reply) => {
   process.env['IS_TESTNET'] = IS_TESTNET
   reply
     .code(200)
-    .send({IS_TESTNET})
+    .send({ IS_TESTNET })
 })
 
 
@@ -90,14 +107,15 @@ async function validateOrder(body) {
   // }
 
   const executor = controller.getExecutorByExchange(body.exchange)
-  
-  const [token0, token1] = await Promise.all([
+
+  const [token0, token1, pool] = await Promise.all([
     executor.recognizeToken(body.token0, body.exchange),
-    executor.recognizeToken(body.token1, body.exchange)
+    executor.recognizeToken(body.token1, body.exchange),
+    executor.recognizePool(body.token0, body.token1)
   ])
   // const token0 = await executor.recognizeToken(body.token0, body.exchange)
   // const token1 = await executor.recognizeToken(body.token1, body.exchange)
-  const pool = await executor.recognizePool(token0.address, token1.address)
+  //const pool = await executor.recognizePool(token0.address, token1.address)
   const trigger_ = utils.recognizeTrigger(body)
   return {
     execution: {

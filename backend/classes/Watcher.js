@@ -88,9 +88,14 @@ class Watcher {
                 }
                 
                 if (counter > config.PRICE_UPDATE_RATE) {
-                    logger.debug(`${pairName} price ${price} is updated in DB`)
-                    await db.updateOrder(order.uuid_, {currentPrice: utils.toFixed(price)})
                     counter = 0
+                    logger.debug(`${pairName} price ${price} is updated in DB`)
+                    process.send({
+                        order: order,
+                        price,
+                        isInfo: true
+                    })
+                    await db.updateOrder(order.uuid_, {currentPrice: utils.toFixed(price)})
                 }
                 counter ++
             } catch (e) {

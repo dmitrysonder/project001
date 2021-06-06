@@ -4,7 +4,6 @@ const { addresses } = require('../../addresses')
 const { getLogger } = require('../../utils/logger');
 const db = require('../../utils/db');
 
-
 module.exports = class Uniswap {
 
     constructor(provider) {
@@ -18,27 +17,35 @@ module.exports = class Uniswap {
         this.FACTORY_ABI = config.getAbi("Factory.abi.json")
         this.ROUTER_CONTRACT = this.newContract(this.ROUTER_ADDRESS, this.ROUTER_ABI, this.PROVIDER)
         this.DEADLINE = Math.floor(Date.now() / 1000) + 60 * 20
-        this.EXECUTION_GAS_LIMIT = BigInt(4000000)
+        this.EXECUTION_GAS_LIMIT = BigInt(4600000)
     }
 
     async approve(order) {
-        const token = order.trigger_.action === 'sell' ? order.pair.token0 : order.pair.token1
-        const contract = new ethers.Contract(token.address, config.getAbi('ERC20.abi.json'), this.ACCOUNT)
-        const allowance = await contract.allowance(this.ACCOUNT.address, this.ROUTER_ADDRESS)
-        console.log(this.ACCOUNT.address)
-        console.log(this.ROUTER_ADDRESS)
-        console.log(allowance)
-        const amountBn = ethers.utils.parseUnits(order.execution.amount, token.decimals)
-        const diff = amountBn.sub(allowance)
-        // if (diff > 0) {
-            const overrides = this.getTxOverrides(order)
-            this.logger.info(`Approving ${diff} ${token.symbol}`)
-            const tx = await contract.approve(this.ROUTER_ADDRESS, amountBn, overrides)
+        const token0 = order.pair.token0
+        const token1 = order.pair.token1
+        const contract0 = new ethers.Contract(token0.address, config.getAbi('ERC20.abi.json'), this.ACCOUNT)
+        const contract1 = new ethers.Contract(token1.address, config.getAbi('ERC20.abi.json'), this.ACCOUNT)
+        const [allowance0, allowance1] = await Promise.all([
+            contract0.allowance(this.ACCOUNT.address, this.ROUTER_ADDRESS),
+            contract1.allowance(this.ACCOUNT.address, this.ROUTER_ADDRESS)
+        ])
+
+        const overrides = this.getTxOverrides(order)
+        if (allowance0 < config.MIN_ALLOWANCE) {
+            this.logger.info(`Approving ${token0.symbol}`)
+            const tx = await contract0.approve(this.ROUTER_ADDRESS, config.MAX_ALLOWANCE, overrides)
             console.log(`Approving ended with: ${JSON.stringify(tx)}`)
-            return tx
-        // } else {
-        //     this.logger.info(`Approve is not needed for ${token.symbol}. Diff: ${diff}`)
-        // }
+        } else {
+            this.logger.info(`Approve is not needed for ${token0.symbol}`)
+        }
+
+        if (allowance1 < config.MIN_ALLOWANCE) {
+            this.logger.info(`Approving ${token1.symbol}`)
+            const tx = await contract1.approve(this.ROUTER_ADDRESS, config.MAX_ALLOWANCE, overrides)
+            console.log(`Approving ended with: ${JSON.stringify(tx)}`)
+        } else {
+            this.logger.info(`Approve is not needed for ${token1.symbol}`)
+        }
     }
 
     setupAccount(seedString) {
@@ -75,7 +82,7 @@ module.exports = class Uniswap {
             amount: ethers.utils.parseUnits(order.execution.amount, order.pair.token0.decimals),
             to: this.ACCOUNT.address,
             deadline: this.DEADLINE,
-            path: [order.pair.token0.address, order.pair.token1.address],
+            path: order.trigger_.action === 'sell' ? [order.pair.token1.address, order.pair.token0.address] : [order.pair.token0.address, order.pair.token1.address]
         }
     }
 
@@ -100,15 +107,14 @@ module.exports = class Uniswap {
 
 
     async swapTokensForExactTokens(data, order) {
-        const {path, to, deadline, amount} = this.getTxParams(order)
-        const {reserve0, reserve1} = data
+        const { path, to, deadline, amount } = this.getTxParams(order)
+        const { reserve0, reserve1 } = data
         const overrides = this.getTxOverrides(order)
         const slippage = order.execution.maxSlippage * 100
         const amountIn = await this.ROUTER_CONTRACT.getAmountIn(amount, reserve1, reserve0)
         const amountInMax = amountIn.mul(10000 + slippage).div(10000)
 
         this.logger.info(`swapTokensForExactTokens ${ethers.utils.formatUnits(amount, order.pair.token0.decimals)} ${order.pair.token0.symbol} using ${ethers.utils.formatUnits(amountInMax, order.pair.token1.decimals)} ${order.pair.token1.symbol}`)
-
         const tx = await this.ROUTER_CONTRACT.swapTokensForExactTokens(
             amount,
             amountInMax,
@@ -117,8 +123,9 @@ module.exports = class Uniswap {
             deadline,
             overrides
         );
-        
-        await db.updateOrder(order.uuid_, {status_: 'pending', receipt: tx})
+
+        await db.updateOrder(order.uuid_, { status_: 'pending', receipt: tx })
+        this.eventEmitter.emit('ServerEvent', {type: 'status', value: 'pending', uuid: order.uuid_, tx})
         const result = {}
         await tx.wait(1).then(receipt => {
             result.status = "confirmed"
@@ -132,8 +139,8 @@ module.exports = class Uniswap {
     }
 
     async swapExactTokensForTokens(data, order) {
-        const {path, to, deadline, amount}  = this.getTxParams(order)
-        const {reserve0, reserve1} = data
+        const { path, to, deadline, amount } = this.getTxParams(order)
+        const { reserve0, reserve1 } = data
         const overrides = this.getTxOverrides(order)
         const amountOut = await this.ROUTER_CONTRACT.getAmountOut(amount, reserve0, reserve1)
         const slippage = order.execution.maxSlippage * 100
@@ -149,7 +156,7 @@ module.exports = class Uniswap {
             deadline,
             overrides
         );
-        
+
         const result = {}
         await tx.wait(1).then(receipt => {
             result.status = "confirmed"

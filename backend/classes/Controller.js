@@ -11,12 +11,14 @@ const Executor = require('./Executor');
 
 module.exports = class Controller {
 
-    constructor() {
+    constructor(eventEmitter) {
         this.watchers = []
+        this.eventEmitter = eventEmitter
     }
 
     async init() {
         this.executor = new Executor()
+        this.executor.eventEmitter = this.eventEmitter
         await this.executor.init()
         await this.killProcesses()
         await this.runWatchers()
@@ -52,10 +54,16 @@ module.exports = class Controller {
     listen() {
         for (const watcher of this.watchers) {
             watcher.worker.on('message', async data => {
-                logger.info(`Received trigger for order ${data?.order.uuid_} with message:\n${data?.msg}`)
-                if (!data?.order) logger.error(`Didn't receive order in data ${JSON.stringify(data)}`)
-                const tx = await this.executor.execute(data.order, data.data)
-                this.handleTrade(tx, data.order)
+                if (!data.isInfo) {
+                    this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: data.order.uuid_, value: 'triggered' })
+                    logger.info(`Received trigger for order ${data?.order.uuid_} with message:\n${data?.msg}`)
+                    if (!data?.order) logger.error(`Didn't receive order in data ${JSON.stringify(data)}`)
+                    const tx = await this.executor.execute(data.order, data.data)
+                    this.handleTrade(tx, data.order)
+                } else {
+                    logger.info(`Price notification: ${data.price}`)
+                    this.eventEmitter.emit('ServerEvent', { type: 'price', uuid: data.order.uuid_, value: data.price })
+                }
             });
         }
     }
@@ -67,19 +75,23 @@ module.exports = class Controller {
     async handleTrade(tx, order) {
         if (tx.status === 'confirmed') {
             logger.info(`Swap confirmed: ${tx.receipt.transactionHash}`)
+
             await db.updateOrder(order.uuid_, {
                 status_: 'completed',
                 receipt: tx.receipt
             })
+            this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: order.uuid_, value: 'completed', tx })
             if (order.botId) await this.createNewBotTrade(watcher)
         } else {
             logger.warn(`Swap failed with the code: ${tx.receipt.code}`)
+
             await db.updateOrder(order.uuid_, {
                 status_: 'failed',
                 receipt: tx.receipt
             })
-            this.onDbUpdate(order.exchange)
+            this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: order.uuid_, value: 'failed', tx })
         }
+        this.onDbUpdate(order.exchange)
     }
 
     async createOrder(order) {
@@ -129,7 +141,9 @@ module.exports = class Controller {
             })
         } else {
             logger.warn(`Can't find watcher for network: ${network}. Initializing...`)
-            this.init()
+            await this.killProcesses()
+            await this.runWatchers()
+            this.listen()
         }
     }
 
