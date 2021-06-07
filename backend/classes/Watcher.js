@@ -52,14 +52,43 @@ class Watcher {
                         logger.info(`[${this.network}] Price listener is created for order: ${order.uuid_}`)
                         break;
                     case 'timestamp':
+                        this.runTimestampListener(order)
+                        logger.info(`[${this.network}] Timestamp listener is created for order: ${order.uuid_}`)
+                        break;
                     case 'listing':
+                        this.runListingListener(order)
+                        logger.info(`[${this.network}] Listing listener is created for order: ${order.uuid_}`)
+                        break;
                     case 'frontRunning':
-                    case 'bot':
+                        this.runMempoolListener(order)
+                        logger.info(`[${this.network}] Mempool listener is created for order: ${order.uuid_}`)
+                        break;
                 }
             }
         } catch (e) {
             logger.error(JSON.stringify(e))
         }
+    }
+
+    runMempoolListener(order) {
+        
+    }
+
+    runTimestampListener(order) {
+        const {target, action} = order.trigger_
+        (async function doSomeStuff() {
+            while (true) {
+                await new Promise(resolve => setTimeout(resolve, 60000));
+                if (+new Date() > target) {
+                    db.updateOrder(order.uuid_, {status_: "triggered"})
+                    process.send({
+                        type: 'timestamp',
+                        order: order,
+                        msg: `Price for ${pairName} is ${price} and it's below target ${target}`
+                    })
+                }
+            }
+        })();
     }
 
     runPriceListener(order) {
@@ -78,6 +107,7 @@ class Watcher {
                     contract.removeAllListeners()
                     db.updateOrder(order.uuid_, {status_: "triggered"})
                     process.send({
+                        type: 'price',
                         order: order,
                         data: { reserve0, reserve1, price },
                         msg: `Price for ${pairName} is ${price} and it's below target ${target}`
@@ -87,6 +117,7 @@ class Watcher {
                     contract.removeAllListeners()
                     db.updateOrder(order.uuid_, {status_: "triggered"})
                     process.send({
+                        type: 'price',
                         order: order,
                         data: { reserve0, reserve1, price },
                         msg: `Price for ${pairName} is ${price} and it's above target ${target}`
@@ -97,6 +128,7 @@ class Watcher {
                     counter = 0
                     logger.debug(`${pairName} price ${price} is updated in DB`)
                     process.send({
+                        type: 'info',
                         order: order,
                         price,
                         isInfo: true
