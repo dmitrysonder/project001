@@ -283,25 +283,26 @@ export default {
     axios.get(`${config.rest}/orders`).then((res) => {
       this.orders = res.data?.orders;
     });
-  },
-  mounted() {
-    this.fields = constants.limitOrder;
-        if (!this.EventSource) {
-      const source = new EventSource(`${config.rest}/sse`)
-      console.log(this.$orders)
-      const index = this.orderIndex("9065e0c3-2c37-4aed-9955-32841ce2d7f3")
-      console.log(index)
+
+    function updateOrder(uuid, value) {
+      const index = this.orders.findIndex((order) => order.uuid_ === uuid);
+      this.orders[index].currentPrice = value
+    }
+
+
+    if (!this.EventSource) {
+      const source = new EventSource(`${config.rest}/sse`);
       source.addEventListener(
         "message",
         function (event) {
           if (event.data) {
-            const {uuid, type, value} = JSON.parse(event.data)[0]
+            const { uuid, type, value } = JSON.parse(event.data)[0];
             switch (type) {
-              case 'status':
-                this.orders[this.orderIndex(uuid)].status_ = value
+              case "status":
+                updateOrder(uuid, value)
                 break;
-              case 'price':
-                this.orders[this.orderIndex(uuid)].currentPrice = value
+              case "price":
+                updateOrder(uuid, value)
                 break;
               default:
                 break;
@@ -323,9 +324,9 @@ export default {
         "error",
         function (e) {
           if (e.target.readyState == EventSource.CLOSED) {
-            console.log("Disconnected")
+            console.log("Disconnected");
           } else if (e.target.readyState == EventSource.CONNECTING) {
-            console.log("Connecting...")
+            console.log("Connecting...");
           }
         },
         false
@@ -333,6 +334,9 @@ export default {
     } else {
       console.log("Your browser doesn't support SSE");
     }
+  },
+  mounted() {
+    this.fields = constants.limitOrder;
   },
   methods: {
     resumeOrder(uuid) {
@@ -349,7 +353,7 @@ export default {
       });
     },
     orderIndex(uuid) {
-      return this.orders.findIndex(order => order.uuid_ === uuid)
+      return this.orders.findIndex((order) => order.uuid_ === uuid);
     },
     onEditOrder(order) {
       document.querySelector("#token0").value = order.pair.token0.address;
