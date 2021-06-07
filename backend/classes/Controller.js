@@ -116,7 +116,6 @@ module.exports = class Controller {
     async createNewBotTrade(order) {
         const bot = await db.getBot(order.botId)
         const activeOrders = await db.getBotOrders(botId)
-        const lastCompletedOrder = await db.getBotLastCompletedTrade(botId)
         if (activeOrders.length === 0) {
             const response = await db.createOrder({
                 execution: {
@@ -127,10 +126,9 @@ module.exports = class Controller {
                 pair: bot.pair,
                 status_: "active",
                 type_: "price",
-
                 trigger_: {
-                    action: lastCompletedOrder._trigger.action === 'buy' ? 'sell' : 'buy',
-                    target: lastCompletedOrder._trigger.action === 'buy' ? bot.amountToSell : bot.amountToBuy
+                    action: order._trigger.action === 'buy' ? 'sell' : 'buy',
+                    target: order._trigger.action === 'buy' ? bot.amountToSell : bot.amountToBuy
                 },
                 exchange: bot.exchange
             })
