@@ -81,7 +81,7 @@ module.exports = class Controller {
                 receipt: tx.receipt
             })
             this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: order.uuid_, value: 'completed', tx })
-            if (order.botId) await this.createNewBotTrade(watcher)
+            if (order.botId) await this.createNewBotTrade(order)
         } else {
             logger.warn(`Swap failed with the code: ${tx.receipt.code}`)
 
@@ -103,16 +103,24 @@ module.exports = class Controller {
         return response
     }
 
+    async createBot(order) {
+        const response = await db.createBot(order)
+        const botId = response?.Attributes?.uuid_
+        this.approve(order)
+        logger.debug(`Creating new bot order for botId ${botId}`)
+        order.botId = botId
+        await this.createOrder(order)
+    }
 
-    async createNewBotTrade(watcher) {
-        const bot = await db.getBot(watcher.order.botId)
+
+    async createNewBotTrade(order) {
+        const bot = await db.getBot(order.botId)
         const activeOrders = await db.getBotOrders(botId)
         const lastCompletedOrder = await db.getBotLastCompletedTrade(botId)
         if (activeOrders.length === 0) {
             const response = await db.createOrder({
                 execution: {
                     amount: bot.amount,
-                    deadline: config.DEFAULT_DEADLINE,
                     gasPrice: bot.gasPrice,
                     maxSlippage: bot.maxSlippage
                 },

@@ -31,6 +31,12 @@ class Watcher {
         })
     }
 
+
+    updateListeners() {
+        this.provider.removeAllListeners()
+        this.runListeners()
+    }
+
     async runListeners() {
         try {
             const allOrders = await db.getOrders('active')
@@ -104,10 +110,6 @@ class Watcher {
         })
     }
 
-    updateListeners() {
-        this.provider.removeAllListeners()
-        this.runListeners()
-    }
 
 }
 

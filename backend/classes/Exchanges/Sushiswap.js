@@ -1,6 +1,5 @@
 const { getLogger } = require('../../utils/logger');
 const Uniswap = require("./Uniswap")
-const utils = require("../../utils/utils")
 const { addresses } = require('../../addresses')
 
 module.exports = class Sushiswap extends Uniswap {

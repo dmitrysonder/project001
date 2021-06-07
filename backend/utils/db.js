@@ -142,6 +142,16 @@ module.exports = {
         return response
     },
 
+    getBotLastCompletedTrade: async function(botId) {
+        const response = await this.query({
+            KeyConditionExpression: "pk = :pk and uuid_ = :uuid",
+            ExpressionAttributeValues: {
+                ":pk": 'bot',
+                ":uuid": botId
+            }
+        })
+    },
+
     getBot: async function(uuid) {
         const data = await this.query({
             KeyConditionExpression: "pk = :pk and uuid_ = :uuid",
@@ -159,11 +169,12 @@ module.exports = {
 
     getBotOrders: async function(botId) {
         const data = await this.query({
-            KeyConditionExpression: "pk = :pk and botId = :botId and status_ <> :status",
+            KeyConditionExpression: "pk = :pk and botId = :botId and status_ <> :status and status_ <> :status2",
             ExpressionAttributeValues: {
-                ":pk": 'order',
-                ":botId": botId,
-                ":status": 'completed'
+                ':pk': 'order',
+                ':botId': botId,
+                ':status': 'completed',
+                ':status2': 'failed'
             }
         })
         if (data["Items"]?.length === 0) {

@@ -1,5 +1,4 @@
 const { getLogger } = require('../../utils/logger')
-const utils = require("../../utils/utils")
 const Uniswap = require("./Uniswap")
 const { addresses } = require('../../addresses')
 
