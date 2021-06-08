@@ -54,15 +54,16 @@ module.exports = class Controller {
     listen() {
         for (const watcher of this.watchers) {
             watcher.worker.on('message', async data => {
-                if (!data.isInfo) {
-                    this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: data.order.uuid_, value: 'triggered' })
-                    logger.info(`Received trigger for order ${data?.order.uuid_} with message:\n${data?.msg}`)
-                    if (!data?.order) logger.error(`Didn't receive order in data ${JSON.stringify(data)}`)
-                    const tx = await this.executor.execute(data.order, data.data)
-                    this.handleTrade(tx, data.order)
-                } else {
-                    logger.info(`Price notification: ${data.price}`)
-                    this.eventEmitter.emit('ServerEvent', { type: 'price', uuid: data.order.uuid_, value: data.price })
+                switch (data.type) {
+                    case 'price' || 'timestamp':
+                        this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: data.order.uuid_, value: 'triggered' })
+                        logger.info(`${data.msg}`)
+                        if (!data?.order) logger.error(`Didn't receive order in data ${JSON.stringify(data)}`)
+                        const tx = await this.executor.execute(data.order, data.data)
+                        this.handleTrade(tx, data.order)
+                    case 'info':
+                        logger.debug(`Price notification ${data.order.pair.token0.symbol}-${data.order.pair.token1.symbol}: ${data.price}`)
+                        this.eventEmitter.emit('ServerEvent', { type: 'price', uuid: data.order.uuid_, value: data.price })
                 }
             });
         }

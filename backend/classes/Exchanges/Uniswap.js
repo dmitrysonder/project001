@@ -108,7 +108,13 @@ module.exports = class Uniswap {
 
     async swapTokensForExactTokens(data, order) {
         const { path, to, deadline, amount } = this.getTxParams(order)
-        const { reserve0, reserve1 } = data
+        if (data) {
+            const { reserve0, reserve1 } = data
+        } else {
+            const pairContract = new ethers.Contract(order.pair.pool, config.getAbi('Pair.abi.json'), this.PROVIDER)
+            const [reserve0, reserve1] = await pairContract.getReserves()
+        }
+        
         const overrides = this.getTxOverrides(order)
         const slippage = order.execution.maxSlippage * 100
         const amountIn = await this.ROUTER_CONTRACT.getAmountIn(amount, reserve1, reserve0)

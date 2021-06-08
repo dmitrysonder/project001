@@ -40,6 +40,7 @@ class Watcher {
     async runListeners() {
         try {
             const allOrders = await db.getOrders('active')
+            logger.debug(`Active orders:\n${allOrders.map(order => order.uuid_).join("\n")}`)
             const orders = allOrders.filter(order => {
                 const network = utils.getNetworkByExchange(order.exchange)
                 return this.network === network
@@ -84,7 +85,7 @@ class Watcher {
                     process.send({
                         type: 'timestamp',
                         order: order,
-                        msg: `Price for ${pairName} is ${price} and it's below target ${target}`
+                        msg: `${order.uuid} - Timestamp order is triggered for ${order.pair.token0.symnol}-${order.pair.token1.symbol}`
                     })
                 }
             }
@@ -110,7 +111,7 @@ class Watcher {
                         type: 'price',
                         order: order,
                         data: { reserve0, reserve1, price },
-                        msg: `Price for ${pairName} is ${price} and it's below target ${target}`
+                        msg: `${order.uuid} - Price for ${pairName} is ${price} and it's below target ${target}`
                     })
                     
                 } else if (price >= target && action === 'sell') {
