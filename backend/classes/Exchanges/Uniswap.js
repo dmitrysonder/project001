@@ -79,7 +79,9 @@ module.exports = class Uniswap {
 
     getTxParams(order) {
         return {
-            amount: ethers.utils.parseUnits(order.execution.amount, order.pair.token0.decimals),
+            amount: order.execution.denomination === 'base'
+                ? ethers.utils.parseUnits(order.execution.amount, order.pair.token0.decimals)
+                : ethers.utils.parseUnits(order.execution.amount, order.pair.token1.decimals),
             to: this.ACCOUNT.address,
             deadline: this.DEADLINE,
             path: order.trigger_.action === 'sell' ? [order.pair.token1.address, order.pair.token0.address] : [order.pair.token0.address, order.pair.token1.address]
@@ -93,90 +95,128 @@ module.exports = class Uniswap {
         }
     }
 
-    async execute(method, order, data) {
-        switch (method) {
-            case 'swapTokensForExactTokens':
-                return await this.swapTokensForExactTokens(data, order)
-            case 'swapExactTokensForTokens':
-                return await this.swapExactTokensForTokens(data, order)
-            default:
-                this.logger.error(`Unexpected execution type in order ${order.uuid} : `)
-                return false
-        }
-    }
-    
-    async executeSandwitch(order, data) {
-        const res = await this.execute(data.method, order)
-    }
 
+    async doSandwitchTrade(order, data) {
+        let whaleResult = 'pending';
+        let botResult = 'pending';
+        data.whaleTx.wait(1).then((tx) => {
+            whaleResult = 'done'
+            if (botResult === 'done') {
+                this.swapExactTokensForTokens()
+            }
+        }).catch(err => whaleResult = 'fail')
 
-    async swapTokensForExactTokens(data, order) {
-        const { path, to, deadline, amount } = this.getTxParams(order)
-        if (data) {
-            const { reserve0, reserve1 } = data
-        } else {
-            const pairContract = new ethers.Contract(order.pair.pool, config.getAbi('Pair.abi.json'), this.PROVIDER)
-            const [reserve0, reserve1] = await pairContract.getReserves()
-        }
-        
+        const { to } = this.getTxParams(order)
+        const { reserve0, reserve1, method, args, amount } = data
         const overrides = this.getTxOverrides(order)
         const slippage = order.execution.maxSlippage * 100
-        const amountIn = await this.ROUTER_CONTRACT.getAmountIn(amount, reserve1, reserve0)
-        const amountInMax = amountIn.mul(10000 + slippage).div(10000)
+        let tx
 
-        this.logger.info(`swapTokensForExactTokens ${ethers.utils.formatUnits(amount, order.pair.token0.decimals)} ${order.pair.token0.symbol} using ${ethers.utils.formatUnits(amountInMax, order.pair.token1.decimals)} ${order.pair.token1.symbol}`)
-        const tx = await this.ROUTER_CONTRACT.swapTokensForExactTokens(
+        switch (method) {
+            case 'swapExactTokensForTokens':
+                const amountIn = await this.ROUTER_CONTRACT.getAmountIn(amount, reserve1, reserve0) // TODO: Replace with offline calculations
+                const amountInMax = amountIn.mul(10000 + slippage).div(10000)
+                tx = whaleResult === 'pending' && this.swapTokensForExactTokens({
+                    amount,
+                    amountInMax,
+                    path: args[2],
+                    to,
+                    deadline: args[4]
+                })
+            case 'swapTokensForExactTokens':
+                const amountOut = await this.ROUTER_CONTRACT.getAmountOut(amount, reserve0, reserve1) // TODO: Replace with offile calculations
+                const amountOutMin = amountOut.mul(10000 - slippage).div(10000)
+                tx = whaleResult === 'pending' && this.swapExactTokensForTokens({
+                    amount,
+                    amountOutMin,
+                    path,
+                    to,
+                    deadline,
+                    overrides
+                })
+            default:
+                this.logger.warn(`Unexpected method of whale tx: ${method}`)
+        }
+
+        tx.wait(1).then(data => botResult = 'done').catch(e => {
+            botResult = 'fail'
+            this.logger.error(`Swap failed with error: ${JSON.stringify(e)}`)
+        })
+    }
+
+    async doTrade(order, data) {
+        const { path, to, deadline, amount } = this.getTxParams(order)
+        const { reserve0, reserve1 } = data
+        const overrides = this.getTxOverrides(order)
+        const slippage = order.execution.maxSlippage * 100
+        let tx
+
+        if (order.execution.denomination === 'base' && order.trigger_.action === 'buy' || order.execution.denomination === 'quote' && order.trigger_.action === 'buy') {
+            const amountIn = await this.ROUTER_CONTRACT.getAmountIn(amount, reserve1, reserve0) // TODO: Replace with offline calculations
+            const amountInMax = amountIn.mul(10000 + slippage).div(10000)
+            tx = await this.swapTokensForExactTokens({
+                amount,
+                amountInMax,
+                path,
+                to,
+                deadline
+            })
+        } else if ((order.execution.denomination === 'base' && order.trigger_.action === 'sell') || (order.execution.denomination === 'quote' && order.trigger_.action === 'buy')) {
+            const amountOut = await this.ROUTER_CONTRACT.getAmountOut(amount, reserve0, reserve1) // TODO: Replace with offile calculations
+            const amountOutMin = amountOut.mul(10000 - slippage).div(10000)
+            tx = await this.swapExactTokensForTokens({
+                amount,
+                amountOutMin,
+                path,
+                to,
+                deadline,
+                overrides
+            })
+        } else {
+            this.logger.warn(`Unexpected trade operation`)
+        }
+
+        await db.updateOrder(order.uuid_, { status_: 'pending', receipt: tx })
+        this.eventEmitter.emit('ServerEvent', { type: 'status', value: 'pending', uuid: order.uuid_, tx })
+        const result = {}
+        await tx.wait(1).then(receipt => {
+            result.status = "confirmed"
+            result.receipt = receipt
+        }).catch(err => {
+            result.status = "failed"
+            result.receipt = err
+        })
+
+        return result
+    }
+
+    swapTokensForExactTokens(data) {
+        const { path, to, deadline, amount, amountInMax } = data
+        const overrides = this.getTxOverrides(order)
+        const params = [
             amount,
             amountInMax,
             path,
             to,
             deadline,
             overrides
-        );
-
-        await db.updateOrder(order.uuid_, { status_: 'pending', receipt: tx })
-        this.eventEmitter.emit('ServerEvent', {type: 'status', value: 'pending', uuid: order.uuid_, tx})
-        const result = {}
-        await tx.wait(1).then(receipt => {
-            result.status = "confirmed"
-            result.receipt = receipt
-        }).catch(err => {
-            result.status = "failed"
-            result.receipt = err
-        })
-
-        return result
+        ]
+        this.logger.info(`swapTokensForExactTokens tx sended with params: ${params}`)
+        return this.ROUTER_CONTRACT.swapTokensForExactTokens(...params);
     }
 
-    async swapExactTokensForTokens(data, order) {
-        const { path, to, deadline, amount } = this.getTxParams(order)
-        const { reserve0, reserve1 } = data
+    swapExactTokensForTokens(data) {
+        const { path, to, deadline, amount, amountOutMin } = data
         const overrides = this.getTxOverrides(order)
-        const amountOut = await this.ROUTER_CONTRACT.getAmountOut(amount, reserve0, reserve1)
-        const slippage = order.execution.maxSlippage * 100
-        const amountOutMin = amountOut.mul(10000 - slippage).div(10000)
-
-        this.logger.info(`swapExactTokensForTokens ${ethers.utils.formatEther(amount)} ${order.pair.token0.symbol} for ${ethers.utils.formatEther(amountOutMin)} ${order.pair.token1.symbol}`)
-
-        const tx = await this.ROUTER_CONTRACT.swapExactTokensForTokens(
+        const params = [
             amount,
             amountOutMin,
             path,
             to,
             deadline,
             overrides
-        );
-
-        const result = {}
-        await tx.wait(1).then(receipt => {
-            result.status = "confirmed"
-            result.receipt = receipt
-        }).catch(err => {
-            result.status = "failed"
-            result.receipt = err
-        })
-
-        return result
+        ]
+        this.logger.info(`swapExactTokensForTokens tx sended with params: ${params}`)
+        return this.ROUTER_CONTRACT.swapTokensForExactTokens(...params);
     }
-
 }

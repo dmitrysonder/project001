@@ -36,20 +36,16 @@ module.exports = class Executor {
         this.pancake.setupAccount(seedString)
     }
 
-    async execute(order, data) {
-        let method = order.trigger_.action === "buy" || data?.trade === "buy"
-            ? "swapTokensForExactTokens"
-            : "swapExactTokensForTokens"
-
+    execute(order, data) {
         switch (order.exchange) {
             case 'uniswap':
-                return await this.uniswap.execute(method, order, data)
+                return order.type_ === 'frontRunning' ? this.uniswap.doSandwitchTrade(order, data) : this.uniswap.doTrade(order, data)
             case 'sushiswap':
-                return await this.sushiswap.execute(method, order, data)
+                return this.sushiswap.doTrade(order, data)
             case 'quickswap':
-                return await this.quickswap.execute(method, order, data)
+                return this.quickswap.doTrade(order, data)
             case 'pancake':
-                return await this.pancake.execute(method, order, data)
+                return this.pancake.doTrade(order, data)
             default:
                 logger.error(`Unexpected exchange ${order.exchange}`)
                 return false
