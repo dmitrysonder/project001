@@ -104,6 +104,10 @@ module.exports = class Uniswap {
                 return false
         }
     }
+    
+    async executeSandwitch(order, data) {
+        const res = await this.execute(data.method, order)
+    }
 
 
     async swapTokensForExactTokens(data, order) {

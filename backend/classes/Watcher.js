@@ -91,21 +91,30 @@ class Watcher {
         this.provider.on('pending', async (data) => {
             if (data.to === order.pair.pool) {
                 const tx = iface.parseTransaction(data.data)
-                console.log(tx.name)
                 const args = tx.args
                 if (args[3].includes(order.pair.token0.address || args[3].includes(order.pair.token1.address))) {
                     switch (tx.name) {
                         case 'swapExactTokensForTokens':
-                            if (args[0] > volume0) {
-                                
+                            if (args[0] > volume0 || args[1] > volume1) {
+                                process.send({
+                                    type: 'forntRunning',
+                                    order: order,
+                                    data: { method: 'swapExactTokensForTokens', args },
+                                    msg: `${order.uuid} - Fontrun trade started for ${order.pair.token0.symnol}-${order.pair.token1.symbol}`
+                                })
                             }
                         case 'swapTokensForExactTokens':
-                            if (args[0] > volume0) {
-                                
+                            if (args[0] > volume0 || args[1] > volume1) {
+                                process.send({
+                                    type: 'forntRunning',
+                                    order: order,
+                                    data: { method: 'swapTokensForExactTokens', args},
+                                    msg: `${order.uuid} - Fontrun trade started for ${order.pair.token0.symnol}-${order.pair.token1.symbol}`
+                                })
                             }
                         default:
-
-                    }
+                            // pass
+                    }   
                 }
             }
             console.log(data)
@@ -126,6 +135,7 @@ class Watcher {
             }
         }
     }
+
 
     runPriceListener(order) {
         const contract = new ethers.Contract(order.pair.pool, this.PAIR_ABI, this.provider)
