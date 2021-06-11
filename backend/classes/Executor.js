@@ -6,11 +6,7 @@ const Pancake = require("./Exchanges/Pancake");
 const { getLogger } = require('../utils/logger');
 const { config } = require('../config')
 const logger = getLogger("Executor")
-const { Wallet, getDefaultProvider, Contract } = require('ethers')
-const AWS = require('aws-sdk')
-const sm = new AWS.SecretsManager({
-    region: config.AWS_REGION
-})
+const { getDefaultProvider } = require('ethers')
 
 module.exports = class Executor {
 
@@ -27,13 +23,11 @@ module.exports = class Executor {
         this.pancake = new Pancake(bscProvider);
     }
 
-    async init() {
-        const accountSeed = await sm.getSecretValue({ SecretId: config.BOT_MNEMONIC_KEY }).promise().then(data => data["SecretString"])
-        const seedString = JSON.parse(accountSeed)["mnemonic"]
-        this.uniswap.setupAccount(seedString)
-        this.sushiswap.setupAccount(seedString)
-        this.quickswap.setupAccount(seedString)
-        this.pancake.setupAccount(seedString)
+    async init(account) {
+        this.uniswap.setupAccount(account)
+        this.sushiswap.setupAccount(account)
+        this.quickswap.setupAccount(account)
+        this.pancake.setupAccount(account)
     }
 
     execute(order, data) {

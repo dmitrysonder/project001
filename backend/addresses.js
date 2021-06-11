@@ -20,4 +20,16 @@ exports.addresses = {
     SUSHI_ROUTER: IS_TESTNET
         ? "0x7a250d5630b4cf539739df2c5dacb4c659f2488d"
         : "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
+    getRouterByExchange(exchange) {
+        switch (exchange) {
+            case 'pancake':
+                return this.PANCAKE_ROUTER
+            case 'quickswap':
+                return this.QUICKSWAP_ROUTER
+            case 'uniswap':
+                return this.UNISWAP_ROUTER
+            case 'sushiswap':
+                return this.SUSHI_ROUTER
+        }
+    }
 }

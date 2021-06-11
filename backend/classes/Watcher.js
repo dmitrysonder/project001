@@ -1,4 +1,4 @@
-const args = require('minimist')(process.argv.slice(2), { string: ['token1_address', 'pair_pool', 'token0_address'] });
+const args = require('minimist')(process.argv.slice(2), { string: ['token1_address', 'accountAddress', 'token0_address'] });
 const { getLogger } = require('../utils/logger');
 const logger = getLogger("Watcher")
 const { config } = require('../config')
@@ -9,7 +9,6 @@ const { addresses } = require('../addresses')
 
 class Watcher {
     constructor(params) {
-        this.routers = [addresses.QUICKSWAP_ROUTER, addresses.SUSHI_ROUTER, addresses.UNISWAP_ROUTER, addresses.PANCAKE_ROUTER]
         this.methods = [
             'swapExactETHForTokens',
             'swapETHForExactTokens',
@@ -21,7 +20,8 @@ class Watcher {
             'swapTokensForExactETH',
             'swapTokensForExactTokens'
         ]
-        if (!params || !params.network) logger.error("No required params network for Watcher. Passed params")
+        if (!params || !params.network || !params.accountAddress) logger.error("No required params network for Watcher. Passed params")
+
         this.PAIR_ABI = config.getAbi("Pair.abi.json")
         const providerData = config.getProvider(params.network)
         const provider = ethers.getDefaultProvider(...providerData)
@@ -30,6 +30,7 @@ class Watcher {
         }
         this.network = params.network
         this.provider = provider
+        this.accountAddress = params.accountAddress
         logger.debug(`Running watcher with provider for ${this.network}`)
         this.runListeners()
         this.listen()
@@ -44,10 +45,30 @@ class Watcher {
         })
     }
 
-
     updateListeners() {
         this.provider.removeAllListeners()
         this.runListeners()
+    }
+
+
+
+    async syncBalances() {
+        const tokens = [...new Set(this.orders.map(order => [order.pair.token0.address, order.pair.token1.address]).flat())]
+        const promises = []
+        for (const token of tokens) {
+            promises.push(this.getBalance(token))
+        }
+        const balances = await Promise.all(promises)
+        this.balances = balances
+    }
+
+    async getBalance(tokenAddress) {
+        const contract = new ethers.Contract(tokenAddress, config.getAbi('ERC20.abi.json'), this.provider)
+        const balance = await contract.balanceOf(this.accountAddress) 
+        return {
+            tokenAddress,
+            balance
+        }
     }
 
     async runListeners() {
@@ -59,6 +80,7 @@ class Watcher {
                 return this.network === network
             })
             this.orders = orders
+            this.syncBalances()
             for (const order of this.orders) {
                 switch (order.type_) {
                     case 'price':
@@ -87,37 +109,35 @@ class Watcher {
 
     runMempoolListener(order) {
         const iface = new ethers.utils.Interface(config.getAbi('Router.abi.json'))
-        const {volume0, volume1} = order.trigger_
+        const { volume0, volume1 } = order.trigger_
+        const parsedVolume0 = ethers.utils.parseUnits(volume0, order.pair.token0.decimals)
+        const parsedVolume1 = ethers.utils.parseUnits(volume1, order.pair.token1.decimals)
+        const ROUTER_ADDRESS = addresses.getRouterByExchange(order.exchange)
         this.provider.on('pending', async (data) => {
-            if (data.to === order.pair.pool) {
+            process.send({
+                type: 'frontRunning',
+                order: order,
+                data: { method: tx.name, args, balances: this.balances },
+                msg: `${order.uuid} - Fontrun trade started for ${order.pair.token0.symnol}-${order.pair.token1.symbol}`
+            })
+            console.log('new tx to:')
+            console.log(data.to)
+            if (data.to === ROUTER_ADDRESS) {
+                logger.debug(JSON.stringify(data))
                 const tx = iface.parseTransaction(data.data)
                 const args = tx.args
-                if (args[3].includes(order.pair.token0.address || args[3].includes(order.pair.token1.address))) {
-                    switch (tx.name) {
-                        case 'swapExactTokensForTokens':
-                            if (args[0] > volume0 || args[1] > volume1) {
-                                process.send({
-                                    type: 'forntRunning',
-                                    order: order,
-                                    data: { method: 'swapExactTokensForTokens', args },
-                                    msg: `${order.uuid} - Fontrun trade started for ${order.pair.token0.symnol}-${order.pair.token1.symbol}`
-                                })
-                            }
-                        case 'swapTokensForExactTokens':
-                            if (args[0] > volume0 || args[1] > volume1) {
-                                process.send({
-                                    type: 'forntRunning',
-                                    order: order,
-                                    data: { method: 'swapTokensForExactTokens', args},
-                                    msg: `${order.uuid} - Fontrun trade started for ${order.pair.token0.symnol}-${order.pair.token1.symbol}`
-                                })
-                            }
-                        default:
-                            // pass
-                    }   
+                logger.debug(JSON.stringify(args))
+                if (args[3].includes(order.pair.token0.address) || args[3].includes(order.pair.token1.address)) {
+                    if (args[0] > parsedVolume0 || args[1] > parsedVolume1) {
+                        process.send({
+                            type: 'frontRunning',
+                            order: order,
+                            data: { method: tx.name, args, balances: this.balances },
+                            msg: `${order.uuid} - Fontrun trade started for ${order.pair.token0.symnol}-${order.pair.token1.symbol}`
+                        })
+                    }
                 }
             }
-            console.log(data)
         })
     }
 

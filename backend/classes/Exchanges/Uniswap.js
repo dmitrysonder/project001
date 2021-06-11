@@ -48,10 +48,10 @@ module.exports = class Uniswap {
         }
     }
 
-    setupAccount(seedString) {
-        const account = new ethers.Wallet.fromMnemonic(seedString).connect(this.PROVIDER)
-        this.ACCOUNT = account
-        this.ROUTER_CONTRACT = this.ROUTER_CONTRACT.connect(account)
+    setupAccount(account) {
+        const account_ = account.connect(this.PROVIDER)
+        this.ACCOUNT = account_
+        this.ROUTER_CONTRACT = this.ROUTER_CONTRACT.connect(account_)
     }
 
     newContract(address, abi, provider) {
@@ -100,7 +100,7 @@ module.exports = class Uniswap {
         let whaleResult = 'pending';
         let botResult = 'pending';
         let newAmount;
-        data.whaleTx.wait(1).then((tx) => {
+        data.whaleTx.wait(1).then(async tx => {
             whaleResult = 'done'
             if (botResult === 'done' || botResult === 'pending') {
                 const amountOut = await this.ROUTER_CONTRACT.getAmountOut(newAmount, reserve0, reserve1) // TODO: Replace with offile calculations

@@ -6,8 +6,13 @@ const { fork } = require('child_process');
 const fs = require('fs')
 const path = require('path');
 const utils = require("../utils/utils")
-const { config } = require('../config')
 const Executor = require('./Executor');
+const AWS = require('aws-sdk')
+const {config} = require('../config')
+const sm = new AWS.SecretsManager({
+    region: config.AWS_REGION
+})
+const ethers = require('ethers')
 
 module.exports = class Controller {
 
@@ -17,9 +22,13 @@ module.exports = class Controller {
     }
 
     async init() {
+        const accountSeed = await sm.getSecretValue({ SecretId: config.BOT_MNEMONIC_KEY }).promise().then(data => data["SecretString"])
+        const seedString = JSON.parse(accountSeed)["mnemonic"]
+        const account = new ethers.Wallet.fromMnemonic(seedString)
+        this.account = account
         this.executor = new Executor()
         this.executor.eventEmitter = this.eventEmitter
-        await this.executor.init()
+        await this.executor.init(account)
         await this.killProcesses()
         await this.runWatchers()
         this.listen()
@@ -30,7 +39,7 @@ module.exports = class Controller {
         const networks = this.getNeededNetworks(orders)
         for (const network of networks) {
 
-            const args = [`--network=${network}`]
+            const args = [`--network=${network}`, `--accountAddress=${this.account.address}`]
             const options = {
                 stdio: ['pipe', 'pipe', 'pipe', 'ipc']
             };
@@ -54,17 +63,16 @@ module.exports = class Controller {
     listen() {
         for (const watcher of this.watchers) {
             watcher.worker.on('message', async data => {
+                if (!data?.order) logger.error(`Didn't receive order in data ${JSON.stringify(data)}`)
                 switch (data.type) {
                     case 'price' || 'timestamp':
                         this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: data.order.uuid_, value: 'triggered' })
                         logger.info(`${data.msg}`)
-                        if (!data?.order) logger.error(`Didn't receive order in data ${JSON.stringify(data)}`)
-                        const tx = await this.executor.execute(data.order, data.data)
-                        this.handleTrade(tx, data.order)
+                        this.handleTrade(await this.executor.execute(data.order, data.data), data.order)
                     case 'forntRunning':
                         this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: data.order.uuid_, value: 'triggered' })
                         logger.info(`${data.msg}`)
-                        const tx = await this.executor.executeSandwitch(data.order, data.data)
+                        this.handleTrade(await this.executor.execute(data.order, data.data), data.order)
                     case 'info':
                         logger.debug(`Price notification ${data.order.pair.token0.symbol}-${data.order.pair.token1.symbol}: ${data.price}`)
                         this.eventEmitter.emit('ServerEvent', { type: 'price', uuid: data.order.uuid_, value: data.price })
