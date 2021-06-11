@@ -107,6 +107,15 @@ class Watcher {
         }
     }
 
+    sendMessage(type, order, data) {
+        process.send({
+            type,
+            order,
+            data,
+            msg: `${order.uuid} - ${type} start for ${order.pair.token0.symnol}-${order.pair.token1.symbol}`
+        })
+    }
+
     runMempoolListener(order) {
         const iface = new ethers.utils.Interface(config.getAbi('Router.abi.json'))
         const { volume0, volume1 } = order.trigger_
@@ -114,12 +123,7 @@ class Watcher {
         const parsedVolume1 = ethers.utils.parseUnits(volume1, order.pair.token1.decimals)
         const ROUTER_ADDRESS = addresses.getRouterByExchange(order.exchange)
         this.provider.on('pending', async (data) => {
-            process.send({
-                type: 'frontRunning',
-                order: order,
-                data: { method: tx.name, args, balances: this.balances },
-                msg: `${order.uuid} - Fontrun trade started for ${order.pair.token0.symnol}-${order.pair.token1.symbol}`
-            })
+            this.sendMessage('frontRunning', order, { method: 'method', args, balances: this.balances })
             console.log('new tx to:')
             console.log(data.to)
             if (data.to === ROUTER_ADDRESS) {
@@ -129,12 +133,7 @@ class Watcher {
                 logger.debug(JSON.stringify(args))
                 if (args[3].includes(order.pair.token0.address) || args[3].includes(order.pair.token1.address)) {
                     if (args[0] > parsedVolume0 || args[1] > parsedVolume1) {
-                        process.send({
-                            type: 'frontRunning',
-                            order: order,
-                            data: { method: tx.name, args, balances: this.balances },
-                            msg: `${order.uuid} - Fontrun trade started for ${order.pair.token0.symnol}-${order.pair.token1.symbol}`
-                        })
+                        this.sendMessage('frontRunning', order, { method: 'method', args, balances: this.balances })
                     }
                 }
             }
@@ -147,11 +146,7 @@ class Watcher {
             await new Promise(resolve => setTimeout(resolve, config.TIMESTAMP_CHECK_RATE));
             if (+new Date() > target) {
                 db.updateOrder(order.uuid_, { status_: "triggered" })
-                process.send({
-                    type: 'timestamp',
-                    order: order,
-                    msg: `${order.uuid} - Timestamp order is triggered for ${order.pair.token0.symnol}-${order.pair.token1.symbol}`
-                })
+                this.sendMessage('timestamp', order)
             }
         }
     }
@@ -172,21 +167,11 @@ class Watcher {
                 if (price <= target && action === 'buy') {
                     contract.removeAllListeners()
                     db.updateOrder(order.uuid_, { status_: "triggered" })
-                    process.send({
-                        type: 'price',
-                        order: order,
-                        data: { reserve0, reserve1, price },
-                        msg: `${order.uuid} - Price for ${pairName} is ${price} and it's below target ${target}`
-                    })
+                    this.sendMessage('price', order, { reserve0, reserve1, price } )
                 } else if (price >= target && action === 'sell') {
                     contract.removeAllListeners()
                     db.updateOrder(order.uuid_, { status_: "triggered" })
-                    process.send({
-                        type: 'price',
-                        order: order,
-                        data: { reserve0, reserve1, price },
-                        msg: `Price for ${pairName} is ${price} and it's above target ${target}`
-                    })
+                    this.sendMessage('price', order, { reserve0, reserve1, price } )
                 }
                 counter++
                 if (counter > config.PRICE_UPDATE_RATE) {
