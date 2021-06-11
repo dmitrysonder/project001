@@ -99,12 +99,37 @@ module.exports = class Uniswap {
     async doSandwitchTrade(order, data) {
         let whaleResult = 'pending';
         let botResult = 'pending';
+        let newAmount;
         data.whaleTx.wait(1).then((tx) => {
             whaleResult = 'done'
-            if (botResult === 'done') {
-                this.swapExactTokensForTokens()
+            if (botResult === 'done' || botResult === 'pending') {
+                const amountOut = await this.ROUTER_CONTRACT.getAmountOut(newAmount, reserve0, reserve1) // TODO: Replace with offile calculations
+                const amountOutMin = amountOut.mul(10000 - slippage).div(10000)
+                const newTx = this.swapExactTokensForTokens({
+                    newAmount,
+                    amountOutMin,
+                    path,
+                    to,
+                    deadline,
+                    overrides
+                })
+                return {
+                    result: 'success',
+                    tx: newTx
+                }
+            } else {
+                return {
+                    result: 'failed because first trade failed',
+                }
             }
-        }).catch(err => whaleResult = 'fail')
+        }).catch(err => {
+            whaleResult = 'fail'
+            this.logger.warn('Whale transaction failed')
+            return {
+                result: 'whale transaction failed',
+                err
+            }
+        })
 
         const { to } = this.getTxParams(order)
         const { reserve0, reserve1, method, args, amount } = data
@@ -116,6 +141,7 @@ module.exports = class Uniswap {
             case 'swapExactTokensForTokens':
                 const amountIn = await this.ROUTER_CONTRACT.getAmountIn(amount, reserve1, reserve0) // TODO: Replace with offline calculations
                 const amountInMax = amountIn.mul(10000 + slippage).div(10000)
+                newAmount = amountIn
                 tx = whaleResult === 'pending' && this.swapTokensForExactTokens({
                     amount,
                     amountInMax,
@@ -125,6 +151,7 @@ module.exports = class Uniswap {
                 })
             case 'swapTokensForExactTokens':
                 const amountOut = await this.ROUTER_CONTRACT.getAmountOut(amount, reserve0, reserve1) // TODO: Replace with offile calculations
+                newAmount = amountOut
                 const amountOutMin = amountOut.mul(10000 - slippage).div(10000)
                 tx = whaleResult === 'pending' && this.swapExactTokensForTokens({
                     amount,
@@ -141,6 +168,9 @@ module.exports = class Uniswap {
         tx.wait(1).then(data => botResult = 'done').catch(e => {
             botResult = 'fail'
             this.logger.error(`Swap failed with error: ${JSON.stringify(e)}`)
+            return  {
+                result: 'first transaction failed'
+            }
         })
     }
 
