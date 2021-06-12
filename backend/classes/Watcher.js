@@ -122,10 +122,12 @@ class Watcher {
         const parsedVolume0 = ethers.utils.parseUnits(volume0, order.pair.token0.decimals)
         const parsedVolume1 = ethers.utils.parseUnits(volume1, order.pair.token1.decimals)
         const ROUTER_ADDRESS = addresses.getRouterByExchange(order.exchange)
+        console.log(ROUTER_ADDRESS)
         this.provider.on('pending', async (data) => {
-            this.sendMessage('frontRunning', order, { method: 'method', args, balances: this.balances })
             console.log('new tx to:')
             console.log(data.to)
+            this.sendMessage('frontRunning', order, { method: 'method', args, balances: this.balances })
+
             if (data.to === ROUTER_ADDRESS) {
                 logger.debug(JSON.stringify(data))
                 const tx = iface.parseTransaction(data.data)

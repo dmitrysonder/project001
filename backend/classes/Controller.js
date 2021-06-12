@@ -69,7 +69,7 @@ module.exports = class Controller {
                         this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: data.order.uuid_, value: 'triggered' })
                         logger.info(`${data.msg}`)
                         this.handleTrade(await this.executor.execute(data.order, data.data), data.order)
-                    case 'forntRunning':
+                    case 'frontRunning':
                         this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: data.order.uuid_, value: 'triggered' })
                         logger.info(`${data.msg}`)
                         this.handleTrade(await this.executor.execute(data.order, data.data), data.order)
