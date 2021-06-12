@@ -60,20 +60,33 @@ module.exports = class Uniswap {
     }
 
     async recognizePool(token0, token1) {
-        const factory = new ethers.Contract(this.FACTORY_ADDRESS, this.FACTORY_ABI, this.PROVIDER)
-        const pair = await factory.getPair(ethers.utils.getAddress(token0), ethers.utils.getAddress(token1))
-        return pair
+        if (token0 && token1) {
+            try {
+                const factory = new ethers.Contract(this.FACTORY_ADDRESS, this.FACTORY_ABI, this.PROVIDER)
+                const pair = await factory.getPair(ethers.utils.getAddress(token0), ethers.utils.getAddress(token1))
+                return pair
+            } catch(e) {
+                return ''
+            }
+        }
+        return ''
     }
 
     async recognizeToken(address_) {
-        const address = ethers.utils.getAddress(address_)
-        const token = new ethers.Contract(address, config.getAbi('ERC20.abi.json'), this.PROVIDER)
-        const symbol = await token.symbol()
-        const decimals = await token.decimals()
-        return {
-            address,
-            decimals: decimals.toString(),
-            symbol
+        if (address_) {
+            try {
+                const address = ethers.utils.getAddress(address_)
+                const token = new ethers.Contract(address, config.getAbi('ERC20.abi.json'), this.PROVIDER)
+                const symbol = await token.symbol()
+                const decimals = await token.decimals()
+                return {
+                    address,
+                    decimals: decimals.toString(),
+                    symbol
+                }
+            } catch(e) {
+                return ''
+            }
         }
     }
 

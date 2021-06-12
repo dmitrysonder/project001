@@ -105,7 +105,7 @@ async function validateOrder(body) {
   // if (emptyValues.length > 0) {
   //   return false
   // }
-
+  
   const executor = controller.getExecutorByExchange(body.exchange)
 
   const [token0, token1, pool] = await Promise.all([
