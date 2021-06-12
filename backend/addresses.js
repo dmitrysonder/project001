@@ -17,9 +17,15 @@ exports.addresses = {
     QUICKSWAP_ROUTER: IS_TESTNET
         ? "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"
         : "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
+    QUICKSWAP_FACTORY: IS_TESTNET
+        ? "0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32"
+        : "0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32",
     SUSHI_ROUTER: IS_TESTNET
         ? "0x7a250d5630b4cf539739df2c5dacb4c659f2488d"
         : "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
+    SUSHI_FACTORY: IS_TESTNET
+        ? "0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac"
+        : "0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac",
     getRouterByExchange(exchange) {
         switch (exchange) {
             case 'pancake':
@@ -31,5 +37,17 @@ exports.addresses = {
             case 'sushiswap':
                 return this.SUSHI_ROUTER
         }
-    }
+    },
+    getFactoryByExchange(exchange) {
+        switch (exchange) {
+            case 'pancake':
+                return this.PANCAKE_FACTORY
+            case 'quickswap':
+                return this.QUICKSWAP_FACTORY
+            case 'uniswap':
+                return this.UNISWAP_FACTORY
+            case 'sushiswap':
+                return this.SUSHI_FACTORY
+        }
+    },
 }

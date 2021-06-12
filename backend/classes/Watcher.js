@@ -112,7 +112,7 @@ class Watcher {
             type,
             order,
             data,
-            msg: `${order.uuid} - ${type} start for ${order.pair.token0.symnol}-${order.pair.token1.symbol}`
+            msg: `${order.uuid_} - ${type} start for ${order.pair.token0.symbol}-${order.pair.token1.symbol}`
         })
     }
 
@@ -122,11 +122,10 @@ class Watcher {
         const parsedVolume0 = ethers.utils.parseUnits(volume0, order.pair.token0.decimals)
         const parsedVolume1 = ethers.utils.parseUnits(volume1, order.pair.token1.decimals)
         const ROUTER_ADDRESS = addresses.getRouterByExchange(order.exchange)
-        console.log(ROUTER_ADDRESS)
         this.provider.on('pending', async (data) => {
-            console.log('new tx to:')
-            console.log(data.to)
-            this.sendMessage('frontRunning', order, { method: 'method', args, balances: this.balances })
+            logger.info('new tx to:')
+            const tx = iface.parseTransaction(data.data)
+            this.sendMessage('frontRunning', order, { method: 'method', args, balances: this.balances, whaleTx: tx })
 
             if (data.to === ROUTER_ADDRESS) {
                 logger.debug(JSON.stringify(data))
@@ -151,6 +150,23 @@ class Watcher {
                 this.sendMessage('timestamp', order)
             }
         }
+    }
+
+    async runListingListener(order) {
+        const FACTORY_ADDRESS = addresses.getFactoryByExchange(order.exchange)
+        const contract = new ethers.Contract(FACTORY_ADDRESS, config.getAbi('Factory.abi.json'), this.provider)
+        const {token0} = order.pair
+        contract.on('PairCreated', async (token0_, token1_, pair, poolId) => {
+            try {
+                if (token0.address === token0_ || token0.address === token1_) {
+                    contract.removeAllListeners()
+                    db.updateOrder(order.uuid_, { status_: "triggered" })
+                    this.sendMessage('listing', order, {token0_, token1_, pair, poolId})
+                }
+            } catch(e) {
+                logger.error(`Something goes wrong in lising listener: ${JSON.stringify(e)}`)
+            }
+        })
     }
 
 

@@ -32,7 +32,7 @@ exports.config = {
                 : ["mainnet", { infura: this.INFURA_KEY }]
             case 'bsc':
                 return this.IS_TESTNET
-                ? ["https://data-seed-prebsc-1-s1.binance.org:8545/"] 
+                ? ["wss://bsc-ws-node.nariox.org:443"]//["https://data-seed-prebsc-1-s1.binance.org:8545/"] 
                 : ["https://bsc-dataseed.binance.org/"]
             case 'polygon':
                 return this.IS_TESTNET

@@ -97,6 +97,7 @@ module.exports = class Uniswap {
 
 
     async doSandwitchTrade(order, data) {
+        this.logger.info(`Starting Sandwitch Trade`)
         let whaleResult = 'pending';
         let botResult = 'pending';
         let newAmount;

@@ -64,15 +64,18 @@ module.exports = class Controller {
         for (const watcher of this.watchers) {
             watcher.worker.on('message', async data => {
                 if (!data?.order) logger.error(`Didn't receive order in data ${JSON.stringify(data)}`)
+                let tx
                 switch (data.type) {
                     case 'price' || 'timestamp':
                         this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: data.order.uuid_, value: 'triggered' })
                         logger.info(`${data.msg}`)
-                        this.handleTrade(await this.executor.execute(data.order, data.data), data.order)
+                        tx = await this.executor.execute(data.order, data.data)
+                        this.handleTrade(tx, data.order)
                     case 'frontRunning':
                         this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: data.order.uuid_, value: 'triggered' })
                         logger.info(`${data.msg}`)
-                        this.handleTrade(await this.executor.execute(data.order, data.data), data.order)
+                        tx = await this.executor.execute(data.order, data.data)
+                        this.handleTrade(tx, data.order)
                     case 'info':
                         logger.debug(`Price notification ${data.order.pair.token0.symbol}-${data.order.pair.token1.symbol}: ${data.price}`)
                         this.eventEmitter.emit('ServerEvent', { type: 'price', uuid: data.order.uuid_, value: data.price })
