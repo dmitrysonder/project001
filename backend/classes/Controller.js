@@ -76,6 +76,11 @@ module.exports = class Controller {
                         logger.info(`${data.msg}`)
                         tx = await this.executor.execute(data.order, data.data)
                         this.handleTrade(tx, data.order)
+                    case 'listing':
+                        this.eventEmitter.emit('ServerEvent', { type: 'status', uuid: data.order.uuid_, value: 'triggered' })
+                        logger.info(`${data.msg}`)
+                        tx = await this.executor.execute(data.order, data.data)
+                        this.handleTrade(tx, data.order)
                     case 'info':
                         logger.debug(`Price notification ${data.order.pair.token0.symbol}-${data.order.pair.token1.symbol}: ${data.price}`)
                         this.eventEmitter.emit('ServerEvent', { type: 'price', uuid: data.order.uuid_, value: data.price })
