@@ -152,7 +152,7 @@ class Watcher {
         }
     }
 
-    async runListingListener(order) {
+    runListingListener(order) {
         const FACTORY_ADDRESS = addresses.getFactoryByExchange(order.exchange)
         const contract = new ethers.Contract(FACTORY_ADDRESS, config.getAbi('Factory.abi.json'), this.provider)
         const {token0} = order.pair
@@ -166,6 +166,14 @@ class Watcher {
             } catch(e) {
                 logger.error(`Something goes wrong in lising listener: ${JSON.stringify(e)}`)
             }
+        })
+    }
+
+    runLiquidityListener(order) {
+        const ROUTER_ADDRESS = addresses.getRouterByExchange(order.exchange)
+        const contract = new ethers.Contract(ROUTER_ADDRESS, config.getAbi('Router.abi.json'), this.provider)
+        contract.on('addLiquidity', async(amountA, amountB, liquidity) => {
+            if ()
         })
     }
 
