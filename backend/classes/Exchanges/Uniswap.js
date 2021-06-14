@@ -66,10 +66,10 @@ module.exports = class Uniswap {
                 const pair = await factory.getPair(ethers.utils.getAddress(token0), ethers.utils.getAddress(token1))
                 return pair
             } catch(e) {
-                return ''
+                return false
             }
         }
-        return ''
+        return false
     }
 
     async recognizeToken(address_) {
@@ -85,7 +85,7 @@ module.exports = class Uniswap {
                     symbol
                 }
             } catch(e) {
-                return ''
+                return false
             }
         }
     }

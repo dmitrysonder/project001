@@ -41,19 +41,24 @@ server.post('/new', async (request, reply) => {
   if (!request.body) reply.code(400)
     .send("Wrong request. Use POST with body")
   const payload = await validateOrder(request.body)
-  if (!payload) reply.code(400)
-    .send("Fill all inputs")
-  let response;
-  if (payload.type_ === 'bot') {
-    response = await controller.createBot(payload)
+
+  if (payload) {
+    let response;
+    if (payload.type_ === 'bot') {
+      response = await controller.createBot(payload)
+    } else {
+      response = await controller.createOrder(payload)
+    }
+    if (!response) reply.code(500)
+    logger.debug("Order created")
+    reply
+      .code(201)
+      .send(response)
   } else {
-    response = await controller.createOrder(payload)
+    reply.code(400)
+    .send("Can't parse tokens and pool info by addresses provided")
   }
-  if (!response) reply.code(500)
-  logger.debug("Order created")
-  reply
-    .code(201)
-    .send(response)
+
 })
 
 server.post('/update', async (request, reply) => {
@@ -117,6 +122,9 @@ async function validateOrder(body) {
   // const token1 = await executor.recognizeToken(body.token1, body.exchange)
   //const pool = await executor.recognizePool(token0.address, token1.address)
   const trigger_ = utils.recognizeTrigger(body)
+  if (!token0 || !token1 || !pool) {
+    return false
+  }
   return {
     execution: {
       amount: body.amount,

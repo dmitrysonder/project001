@@ -218,7 +218,7 @@
             <td>{{ order.execution.amount }}</td>
             <td>
               {{
-                `${order.trigger_.action} when ${order.type_} hit ${order.trigger_.target}`
+                `${order.type_ === 'frontRunning' ? `Frontrun trades when volume is greater than: ${order.trigger_.volume0} ${order.pair.token0.symbol} or ${order.trigger_.volume1} ${order.pair.token1.symbol}` : `${order.trigger_.action} when ${order.type_} hit ${order.trigger_.target}`}`
               }}
             </td>
             <td>
