@@ -176,6 +176,7 @@ class Watcher {
             if (amount0 > amount) {
                 await db.updateOrder(order.uuid_, { status_: "triggered" })
                 contract.removeAllListeners()
+                order.pool = pair
                 this.sendMessage('listing', order)
             }
         })
