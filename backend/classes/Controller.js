@@ -84,6 +84,20 @@ module.exports = class Controller {
                     case 'info':
                         logger.debug(`Price notification ${data.order.pair.token0.symbol}-${data.order.pair.token1.symbol}: ${data.price}`)
                         this.eventEmitter.emit('ServerEvent', { type: 'price', uuid: data.order.uuid_, value: data.price })
+                    case 'updatePair':
+                        const {token0, token1} = data.order.pair
+                        let pool = await this.executor.recognizePool(token0.address, token1.address)
+                        if (!pool) {
+                            pool = await this.executor.recognizePool(token1.address, token0.address)
+                        }
+                        await db.updateOrder(data.order.uuid_, {
+                            pair: {
+                                token0,
+                                token1,
+                                pool
+                            }
+                        })
+                        logger.debug('Pair updated')
                 }
             });
         }
