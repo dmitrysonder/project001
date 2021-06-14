@@ -188,9 +188,20 @@ module.exports = class Uniswap {
         })
     }
 
+    async getReserves(pairAddress) {
+        const contract = new ethers.Contract(pairAddress, config.getAbi('Pair.abi.json'), this.PROVIDER)
+        const [reserve0, reserve1] = await contract.getReserves()
+        return {reserve0, reserve1}
+    }
+
     async doTrade(order, data) {
         const { path, to, deadline, amount } = this.getTxParams(order)
-        const { reserve0, reserve1 } = data
+        if (!data) {
+            const reserves = await this.getReserves(order.pair)
+            const {reserve0, reserve1} = reserves
+        } else {
+            const { reserve0, reserve1 } = data
+        }
         const overrides = this.getTxOverrides(order)
         const slippage = order.execution.maxSlippage * 100
         let tx
