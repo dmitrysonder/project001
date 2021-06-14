@@ -158,11 +158,10 @@ class Watcher {
         const {token0} = order.pair
         contract.on('PairCreated', async (token0_, token1_, pair, poolId) => {
             try {
-                this.sendMessage('updatePair', order)
-                if (token0.address === token0_ || token0.address === token1_) {
+                if (token0.address === token0_) {
+                    this.sendMessage('updatePair', order)
                     contract.removeAllListeners()
-                    db.updateOrder(order.uuid_, { status_: "triggered" })
-                    this.sendMessage('listing', order, {token0_, token1_, pair, poolId})
+                    this.runLiquidityListener(order, pair)
                 }
             } catch(e) {
                 logger.error(`Something goes wrong in lising listener: ${JSON.stringify(e)}`)
@@ -170,12 +169,14 @@ class Watcher {
         })
     }
 
-    runLiquidityListener(order) {
-        const contract = new ethers.Contract(order.pair, config.getAbi('Router.abi.json'), this.provider)
+    runLiquidityListener(order, pair) {
+        const contract = new ethers.Contract(pair, config.getAbi('Router.abi.json'), this.provider)
         const amount = ethers.utils.parseUnits(order.execution.amount, order.pair.token0.decimals)
         contract.on('Mint', async(sender, amount0, amount1) => {
             if (amount0 > amount) {
-
+                await db.updateOrder(order.uuid_, { status_: "triggered" })
+                contract.removeAllListeners()
+                this.sendMessage('listing', order)
             }
         })
     }
