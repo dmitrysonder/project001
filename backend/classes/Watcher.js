@@ -80,6 +80,19 @@ class Watcher {
                 return this.network === network
             })
             this.orders = orders
+            this.frontRunOrders = orders.filter(order => order.type_ === 'frontRunning').map(ord => {
+                ord['router'] = addresses.getRouterByExchange(ord.exchange)
+                const {volume0, volume1} = ord.trigger_
+                const parsedVolume0 = ethers.utils.parseUnits(volume0, ord.pair.token0.decimals)
+                const parsedVolume1 = ethers.utils.parseUnits(volume1, ord.pair.token1.decimals)
+                ord.trigger_['parsedVolume0'] = parsedVolume0
+                ord.trigger_['parsedVolume1'] = parsedVolume1
+                return ord
+            })
+            if (this.frontRunOrders.length > 0) {
+                logger.debug(`Initializing ${this.frontRunOrders.length} frontRun orders`)
+                this.runMempoolListener()
+            }
             this.syncBalances()
             for (const order of this.orders) {
                 switch (order.type_) {
@@ -95,15 +108,11 @@ class Watcher {
                         this.runListingListener(order)
                         logger.info(`[${this.network}] Listing listener is created for order: ${order.uuid_}`)
                         break;
-                    case 'frontRunning':
-                        this.runMempoolListener(order)
-                        logger.info(`[${this.network}] Mempool listener is created for order: ${order.uuid_}`)
-                        break;
                 }
             }
         } catch (e) {
             logger.error('Error during initalizing listeners')
-            logger.error(JSON.stringify(e))
+            console.log(e)
         }
     }
 
@@ -116,26 +125,24 @@ class Watcher {
         })
     }
 
-    runMempoolListener(order) {
+    runMempoolListener() {
         const iface = new ethers.utils.Interface(config.getAbi('Router.abi.json'))
-        const { volume0, volume1 } = order.trigger_
-        const parsedVolume0 = ethers.utils.parseUnits(volume0, order.pair.token0.decimals)
-        const parsedVolume1 = ethers.utils.parseUnits(volume1, order.pair.token1.decimals)
-        const ROUTER_ADDRESS = addresses.getRouterByExchange(order.exchange)
         this.provider.on('pending', async (data) => {
-            logger.info('new tx to:')
-            const tx = iface.parseTransaction(data.data)
-            this.sendMessage('frontRunning', order, { method: 'method', args, balances: this.balances, whaleTx: tx })
-
-            if (data.to === ROUTER_ADDRESS) {
-                logger.debug(JSON.stringify(data))
+            console.log('new tx')
+            const filteredByRouter = this.frontRunOrders.filter(order => order.router === data.to)
+            if (filteredByRouter.length > 0) {
+                logger.debug(`Tx to Router found`)
                 const tx = iface.parseTransaction(data.data)
                 const args = tx.args
                 logger.debug(JSON.stringify(args))
-                if (args[3].includes(order.pair.token0.address) || args[3].includes(order.pair.token1.address)) {
-                    if (args[0] > parsedVolume0 || args[1] > parsedVolume1) {
-                        this.sendMessage('frontRunning', order, { method: 'method', args, balances: this.balances })
-                    }
+                const filteredByPair = filteredByRouter.filter(order => args[3].includes(order.pair.token0.address) || args[3].includes(order.pair.token1.address))
+                const filteredByVolume = filteredByPair.filter(order => {
+                    const {parsedVolume0, parsedVolume1} = order.trigger_
+                    return args[0] > parsedVolume0 || args[1] > parsedVolume1
+                })
+                if (filteredByVolume.length > 0) {
+                    logger.debug(`FrontRun is triggered`)
+                    this.sendMessage('frontRunning', filteredByVolume[0], { method: 'method', args, balances: this.balances, whaleTx: this.provider.getTransaction(data.transactionHash) })
                 }
             }
         })
@@ -218,7 +225,7 @@ class Watcher {
                 }
             } catch (e) {
                 logger.error('Somethig wrong with price listener')
-                logger.error(JSON.stringify(e))
+                console.log(e)
             }
         })
     }
