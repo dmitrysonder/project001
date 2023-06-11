@@ -105,12 +105,7 @@ server.listen(config.PORT, "0.0.0.0", async (err, address) => {
   logger.info(`Server listening at ${address}`);
 })
 
-async function validateOrder(body) {
-  // const emptyValues = Object.keys(body).filter(key => body.orderType === 'timestamp' && key === 'token1' ? body[key] : false)
-  // if (emptyValues.length > 0) {
-  //   return false
-  // }
-  
+async function validateOrder(body) {  
   const executor = controller.getExecutorByExchange(body.exchange)
 
   const [token0, token1, pool] = await Promise.all([
@@ -118,9 +113,7 @@ async function validateOrder(body) {
     executor.recognizeToken(body.token1, body.exchange),
     executor.recognizePool(body.token0, body.token1)
   ])
-  // const token0 = await executor.recognizeToken(body.token0, body.exchange)
-  // const token1 = await executor.recognizeToken(body.token1, body.exchange)
-  //const pool = await executor.recognizePool(token0.address, token1.address)
+
   const trigger_ = utils.recognizeTrigger(body)
   if (!token0 || !token1 || !pool) {
     return false
